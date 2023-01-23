@@ -14,7 +14,9 @@ const plotdir = joinpath(@__DIR__, "../plots")
 const srcdir = joinpath(@__DIR__)
 
 include("maxdensitydiff.jl")
+include("watercolmodel.jl")
 
 @reexport using .VerticalProfileStability.MaximumDensityDifference
+@reexport using .VerticalProfileStability.WaterColumnModel
 
 end
