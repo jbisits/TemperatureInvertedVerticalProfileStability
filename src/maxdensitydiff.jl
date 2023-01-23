@@ -4,7 +4,7 @@ module MaximumDensityDifference
 
 using Rasters, OceanRasterConversions, GibbsSeaWater
 
-export series_max_Δρ
+export series_max_Δρ, series2vec, get_lats
 
 """
     function Δρ_cab(Sₐ::Vector, Θ::Vector, p::Vector)
@@ -282,6 +282,42 @@ function Δz(Θ::Raster, upper_idx::Array, lower_idx::Array)
     end
 
     return Δz_mat
+
+end
+
+"""
+    function series2vec(series::RasterSeries, var::Symbol)
+Convert a variable `var` from a `RasterSeries` into a `Vector` for plotting.
+"""
+function series2vec(series::RasterSeries, var::Symbol)
+
+    var_vals_vec = []
+    for i ∈ eachindex(series)
+        var_vals = reshape(series[i][var], :)[:]
+        find = @. !ismissing(var_vals)
+        push!(var_vals_vec, var_vals[find])
+    end
+
+    return vcat(var_vals_vec...)
+
+end
+
+"""
+    function get_lats(series::RasterSeries, var::Symbol)
+Get the latitude at the non-missing values of a variabla `var` from a `RasterSeries`
+"""
+function get_lats(series::RasterSeries, var::Symbol)
+
+    lon, lat = lookup(series[1][var], X), lookup(series[1][var], Y)
+    lats_vec = repeat(lat, outer = length(lon))
+    lats_vec_nm = []
+    for i ∈ eachindex(series)
+        var_vals = reshape(series[i][var], :)[:]
+        find = @. !ismissing(var_vals)
+        push!(lats_vec_nm, lats_vec[find])
+    end
+
+    return vcat(lats_vec_nm...)
 
 end
 
