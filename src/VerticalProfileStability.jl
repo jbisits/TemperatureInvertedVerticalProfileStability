@@ -6,6 +6,7 @@ using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, Reexport
 
 export
     ECCO_datadir,
+    sim_datadir,
     plotdir,
     srcdir
 
