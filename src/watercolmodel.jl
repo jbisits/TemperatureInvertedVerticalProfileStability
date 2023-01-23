@@ -4,16 +4,9 @@ export
     run_model,
     run_model_two_layer,
     Δρ,
-    Δρ_interface,
     order_files,
     order_mat,
     vec2mat,
-    extract_t,
-    extract_T_ts,
-    extract_S_ts,
-    extract_κ_ts,
-    extract_∂z_b_ts,
-    correct_κ,
     save_densitydiff!,
     save_timeseries!
 
@@ -256,90 +249,13 @@ end
 ############################################################################################
 ## Functions for organising and analysing model output
 ############################################################################################
-"""
-    function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64; Lat = -60)
-Find the greatest denstiy difference over the water column from the ouput of a
-one dimensional model. The model output is saved as `.jld2` files and a string
-of these files is passed to the function. By default the pressure is computed at
-60ᵒS but this can be changed by passing in keyword argument `Lat`. For information on
-the calculation of the density differences see `model_setup.md`
-"""
-function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64; Lat = -60)
-
-    T_test = FieldTimeSeries(data_files[1], "T")
-    t = T_test.times ./ days
-    z = znodes(T_test)
-    all_levels = reverse(z)
-    p = gsw_p_from_z.(all_levels, Lat)
-    num_steps = length(t)
-
-    Δρ_s = Array{Float64}(undef, num_steps, length(data_files))
-    Δρ_c = Array{Float64}(undef, num_steps, length(data_files))
-
-    j = 1
-    for file ∈ data_files
-
-        println("$file")
-        T, S = FieldTimeSeries(file, "T"), FieldTimeSeries(file, "S")
-
-        #T and S time series for each initial condition
-        T_steps = [interior(T[time], 1, 1, :) for time ∈ 1:length(t)]
-        S_steps = [interior(S[time], 1, 1, :) for time ∈ 1:length(t)]
-
-        for step ∈ 1:num_steps
-
-            T_profile = reverse(T_steps[step])
-            S_profile = reverse(S_steps[step])
-            temp_Δρ_s = []
-            temp_Δρ_c = []
-            for upper_level ∈ eachindex(all_levels[1:end-2])
-
-                Θᵤ = T_profile[upper_level]
-                Sᵤ = S_profile[upper_level]
-                pᵤ = p[upper_level]
-
-                for lower_level ∈ (upper_level + 1):length(all_levels)
-
-                    Θₗ = T_profile[lower_level]
-                    ΔΘ = Θᵤ - Θₗ
-                    if  abs(Θᵤ - Θₗ) > ΔΘ_thres
-                        pₗ = p[lower_level]
-                        p̄ = 0.5 * (pᵤ + pₗ)
-                        Sₗ = S_profile[lower_level]
-                        ΔS = Sᵤ - Sₗ
-                        ρᵤ = gsw_rho(Sᵤ, Θᵤ, p̄)
-                        ρₗ = gsw_rho(Sₗ, Θₗ, p̄)
-                        Δρ_s_level = ρᵤ - ρₗ
-                        push!(temp_Δρ_s, Δρ_s_level)
-                        α = gsw_alpha(Sₗ, Θₗ, pₗ)
-                        β = gsw_beta(Sₗ, Θₗ, pₗ)
-                        Δρ_c_level = ρₗ * (β * ΔS - α * ΔΘ)
-                        push!(temp_Δρ_c, Δρ_c_level)
-                    end
-
-                end
-
-            end
-
-            if !isempty(temp_Δρ_s)
-                Δρ_s[step, j] = maximum(temp_Δρ_s)
-                Δρ_c[step, j] = maximum(temp_Δρ_c)
-            end
-
-        end
-
-        j += 1
-    end
-
-    return Dict("Δρ_s" => Δρ_s,
-                "Δρ_c" => Δρ_c)
-end
 
 """
     function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
 Find the greatest denstiy difference over the water column from the ouput of a
 one dimensional model. This method uses a reference pressure, `p_ref`, instead of
-midpoint or lower pressure for the density difference calculations.
+midpoint or lower pressure for the density difference calculations. The simulations I will
+run as part of this will use reference pressure so only have this method here.
 """
 function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
 
@@ -402,64 +318,6 @@ function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
 
         end
 
-    end
-
-    return Dict("Δρ_s" => Δρ_s,
-                "Δρ_c" => Δρ_c)
-end
-
-"""
-    function Δρ_interface(file::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
-Compute the density difference at reference pressure `p_ref` at the interfaces of the water column.
-"""
-function Δρ_interface(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
-
-    T_test = FieldTimeSeries(data_files[1], "T")
-    t = T_test.times ./ days
-    num_steps = length(t)
-
-    Δρ_s = Array{Float64}(undef, num_steps, length(data_files))
-    Δρ_c = Array{Float64}(undef, num_steps, length(data_files))
-
-    for (i, file) ∈ enumerate(data_files)
-
-        println("$file")
-        T, S = FieldTimeSeries(file, "T"), FieldTimeSeries(file, "S")
-
-        #T and S time series for each initial condition
-        T_steps = [interior(T[time], 1, 1, :) for time ∈ 1:length(t)]
-        S_steps = [interior(S[time], 1, 1, :) for time ∈ 1:length(t)]
-
-        for step ∈ 1:num_steps
-
-            # The arrays for depth, prpessure have been reversed as it is
-            # conceptually easier to work with so T and S have to be as well
-            T_profile = reverse(T_steps[step])
-            S_profile = reverse(S_steps[step])
-            temp_Δρ_s = Array{Float64}(undef, length(T_profile)-1)
-            temp_Δρ_c = Array{Float64}(undef, length(T_profile)-1)
-            for k ∈ 1:length(T_profile)-1
-
-                if abs(T_profile[k] - T_profile[k+1]) > ΔΘ_thres
-                    ρᵤ = gsw_rho(S_profile[k], T_profile[k], p_ref)
-                    ρₗ = gsw_rho(S_profile[k+1], T_profile[k+1], p_ref)
-                    temp_Δρ_s[k] = ρᵤ - ρₗ
-                    α = gsw_alpha(S_profile[k+1], T_profile[k+1], p_ref)
-                    β = gsw_beta(S_profile[k+1], T_profile[k+1], p_ref)
-                    ΔT = T_profile[k] - T_profile[k+1]
-                    ΔS = S_profile[k] - S_profile[k+1]
-                    temp_Δρ_c[k] = ρₗ * (β * (ΔS) - α * (ΔT))
-                end
-
-            end
-
-
-            if !isempty(temp_Δρ_s)
-                Δρ_s[step, i] = maximum(temp_Δρ_s)
-                Δρ_c[step, i] = maximum(temp_Δρ_c)
-            end
-
-        end
     end
 
     return Dict("Δρ_s" => Δρ_s,
@@ -612,33 +470,6 @@ function extract_∂z_b_ts(data_files::Vector{String})
     end
 
     return ∂z_b_ts
-end
-
-"""
-    function correct_κ(κ_ts::Matrix, ∂z_b::Matrix)
-Check for small (order 1e-16), negative numerical errors in the buoyancy gradient that are applying
-the convective diffusivity but should most likely be applying the background diffusivity.
-"""
-function correct_κ(κ_ts::Array, ∂z_b::Array, files::Vector{String}; abs_tol = 1e-13)
-
-    background_κ = load(files[1])["closure/background_κz"]
-
-    corrected_κ = copy(κ_ts)
-    dims = size(∂z_b)
-    for k ∈ 1:dims[3]
-
-        for i ∈ 1:dims[1], j ∈ 1:dims[2]
-
-            if ∂z_b[i, j, k] < 0
-                test_val = isapprox(∂z_b[i, j, k], 0; atol = abs_tol)
-                corrected_κ[i, j, k] = ifelse(test_val, background_κ, corrected_κ[i, j, k])
-            end
-
-        end
-
-    end
-
-    return corrected_κ
 end
 
 """
