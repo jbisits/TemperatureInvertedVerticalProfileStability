@@ -32,7 +32,7 @@ function run_model(;
                     Sᵤ = 34.5,
                     Sₗ = 34.7,
                     Sₘ = 34.75,
-                    Sᵣ = 34.578,
+                    Sᵣ = 34.57,
                num_ics = 10,
                     Nz = 100, # number of levels
                     Lz = 500, # ovearll depth
@@ -67,27 +67,20 @@ function run_model(;
     T₀ = Array{Float64}(undef, size(grid))
     Tᵤ_array = fill(Tᵤ, 20) # want to unhard code these bits eventually
     # This adds a temperature gradient to avoid spurios convective mixing in the mixed layer
-    Tₗ_array = fill(Tₗ, 20)
+    Tₗ_array = fill(Tₗ, 80)
     #Tᵤ_array = reverse(range(-1.87, Tᵤ, length = 20))
     T₀[:, :, :] = vcat(Tₗ_array, Tᵤ_array)
 
     # Set the salinity initial condition
     S₀ = Array{Float64}(undef, size(grid))
     Sᵤ_array = fill(Sᵤ, 20)
-    Sₗ_array = fill(Sₗ, 20)
-    #Sₗ_array = range(Sₘ, Sₗ, length = 25)
+    Sₗ_array = range(Sₘ, Sₗ, length = 80)
     S₀[:, :, :] = vcat(Sₗ_array, Sᵤ_array)
     # Set the salinity initial conditions for increasing salinity in the mixed layer
     Sᵢ = reshape(S₀, :)
     S_ics = repeat(Sᵢ, inner = (1, 1), outer = (1, num_ics))
     S_inc = range(Sᵤ, Sᵣ, length = num_ics)
-    S_ics[21:end, :] .= repeat(S_inc, inner = (1, 20), outer = (1, 1))'
-
-    # Save the salinity mixed layer initial conditions
-    jldopen(saved_params, "a+") do file
-        file["T_ics"] = reshape(T₀, :)
-        file["S_ics"] = S_ics
-    end
+    S_ics[81:end, :] .= repeat(S_inc, inner = (1, 20), outer = (1, 1))'
 
     savefile = joinpath(savepath, "T_and_S")
     for i ∈ 1:num_ics

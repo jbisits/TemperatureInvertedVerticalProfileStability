@@ -17,6 +17,7 @@ lower_isopycnal = gsw_rho(Sₗ, Tₗ, p_ref)
 ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = 10)))
 
 T_increments = 5 .* [0, 1, 2, 3, 4]
+# Save vals for other initial conditions
 S_vals = Matrix{Float64}(undef, 11, length(T_increments))
 T_vals = Matrix{Float64}(undef, 2, length(T_increments))
 ##
@@ -47,8 +48,8 @@ deep_water_colour = [:red, :orange, :blue, :green, :magenta]
 for (i, T_increment) ∈ enumerate(T_increments)
 
     Tₗ_2 = Tₗ + T_increment
-    Tₗ_2_find = findfirst(T .>= Tₗ_2)
-    Sₗ_2_find = findfirst(ρ[:, Tₗ_2_find] .>= lower_isopycnal)
+    Tₗ_2_find = findfirst(T .>= Tₗ_2)-1
+    Sₗ_2_find = findfirst(ρ[:, Tₗ_2_find] .>= lower_isopycnal)-1
     Sₗ_2 = S[Sₗ_2_find]
 
     αₗ_2 = gsw_alpha(Sₗ_2, Tₗ_2, p_ref)
@@ -59,7 +60,7 @@ for (i, T_increment) ∈ enumerate(T_increments)
     Tᵤ_2_idx = findfirst(T .> Tᵤ_2[1])
     Sᵤ_lower_isopycnal_idx = findfirst(ρ[:, Tᵤ_2_idx] .>= lower_isopycnal)
     Sᵤ_2_max = S[Sᵤ_lower_isopycnal_idx] - S_ic_dist_to_isopycnal
-    s_range = range(Sᵤ_2_max - 0.1, Sᵤ_2_max, length = 10)
+    s_range = range(Sᵤ_2_max - 0.07, Sᵤ_2_max, length = 10)
 
     T_vals[:, i] = [Tᵤ_2[1], Tₗ_2]
     S_vals[:, i] = vcat(s_range, Sₗ_2)
@@ -71,7 +72,7 @@ for (i, T_increment) ∈ enumerate(T_increments)
     T_grid_ = T_' .* ones(length(T_))
     ρ_ = gsw_rho.(S_grid_, T_grid_, p_ref)
 
-    tang_start = findfirst(S_ .>= s_range[5])
+    tang_start = findfirst(S_ .>= s_range[4])
     tang_length = tang_start:findfirst(S_ .>= Sₗ_2)
     S_tangent = S_[tang_length]
     tangent = @. Tₗ_2 + m_2 * (S_tangent - Sₗ_2)
@@ -88,10 +89,9 @@ for (i, T_increment) ∈ enumerate(T_increments)
             label = "Deep water mass")
     lines!(ax[i + 1], S_tangent, tangent; color = deep_water_colour[i],
             label = "Linearised density about\ndeep water mass")
-    scatter!(ax[i + 1], s_range, Tᵤ_2; color = ic_colour, markersize = 6)
+    scatter!(ax[i + 1], s_range, Tᵤ_2; color = ic_colour, markersize = 4)
 end
 fig
 ##
 #save(joinpath(plotdir, "Fof_diagram_multiple_dwps.png"), fig)
 ##
-sal_vals
