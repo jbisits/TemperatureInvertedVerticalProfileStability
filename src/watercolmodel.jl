@@ -33,7 +33,7 @@ function run_model(;
                     Sₗ = 34.7,
                     Sₘ = 34.75,
                     Sᵣ = 34.578,
-               num_ics = 11,
+               num_ics = 10,
                     Nz = 100, # number of levels
                     Lz = 500, # ovearll depth
            ref_density = 1028.18,

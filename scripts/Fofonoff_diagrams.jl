@@ -17,6 +17,8 @@ lower_isopycnal = gsw_rho(Sₗ, Tₗ, p_ref)
 ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = 10)))
 
 T_increments = 5 .* [0, 1, 2, 3, 4]
+S_vals = Matrix{Float64}(undef, 11, length(T_increments))
+T_vals = Matrix{Float64}(undef, 2, length(T_increments))
 ##
 fig = Figure(resolution = (1400, 1400))
 titles = reshape(["Θ-S diagram with multiple deep water masses"
@@ -59,6 +61,9 @@ for (i, T_increment) ∈ enumerate(T_increments)
     Sᵤ_2_max = S[Sᵤ_lower_isopycnal_idx] - S_ic_dist_to_isopycnal
     s_range = range(Sᵤ_2_max - 0.1, Sᵤ_2_max, length = 10)
 
+    T_vals[:, i] = [Tᵤ_2[1], Tₗ_2]
+    S_vals[:, i] = vcat(s_range, Sₗ_2)
+
     inc = 0.01
     S_ = range(s_range[1] - inc, Sₗ_2 + inc, length = 1000)
     S_grid_ = S_ .* ones(length(S_))'
@@ -87,4 +92,6 @@ for (i, T_increment) ∈ enumerate(T_increments)
 end
 fig
 ##
-save(joinpath(plotdir, "Fof_diagram_multiple_dwps.png"), fig)
+#save(joinpath(plotdir, "Fof_diagram_multiple_dwps.png"), fig)
+##
+sal_vals
