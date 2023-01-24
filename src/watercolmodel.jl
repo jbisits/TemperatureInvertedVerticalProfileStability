@@ -40,7 +40,7 @@ function run_model(;
           convective_κ = 1.0,
           background_κ = 1e-5,
             convective = true,
-                    Δt = 20 / 60,   # timestep in minutes, i.e. this is a 20 second timestep
+                    Δt = 5,   # minutes
               savepath = "Output",
             sim_length = 60,  # in days
              save_freq = 30   # in minutes
@@ -125,7 +125,7 @@ function run_model_two_layer(;
                   convective_κ = 1.0,
                   background_κ = 1e-5,
                     convective = true,
-                            Δt = 20 / 60,   # timestep in minutes, this is a 20s timestep
+                            Δt = 5,         # minutes
                       savepath = "Output",
                     sim_length = 60,        # in days
                      save_freq = 30         # in minutes
