@@ -17,6 +17,7 @@ saved_params = jldopen(joinpath(sim_output, "model_params.jld2"))
 Sᵤ, Sₗ, Sᵣ, Sₘ, Tᵤ, Tₗ, num_ics = saved_params["Sᵤ"], saved_params["Sₗ"], saved_params["Sᵣ"],
                                   saved_params["Sₘ"], saved_params["Tᵤ"], saved_params["Tₗ"],
                                   saved_params["num_ics"]
+if num_ics != 10; num_ics = 10; end
 close(saved_params)
 ## Initial conditions
 S₀, T₀ = [S_ts[:, 1, i] for i ∈ 1:length(S_ts[1, 1, :])],
@@ -24,9 +25,9 @@ S₀, T₀ = [S_ts[:, 1, i] for i ∈ 1:length(S_ts[1, 1, :])],
 sal_ic_vals_string = string.(round.([S₀[i][end] for i ∈ 1:10]; digits = 3))
 
 ##Setting up initial conditions for the model using a Fofonoff diagram.
-T = range(18, 22, 200)
+T = range(Tᵤ - 0.5, Tₗ + 0.5, 200)
 T_grid = T' .* ones(length(T))
-S = range(38.35, Sₘ, 200)
+S = range(S₀[1][end] - 0.02, Sₘ, 200)
 S_grid = S .* ones(length(S))'
 
 ρ = gsw_rho.(S_grid, T_grid, p_ref)
@@ -37,7 +38,7 @@ lower_isopycnal = gsw_rho(Sₗ, Tₗ, p_ref)
 βₗ = gsw_beta(Sₗ, Tₗ, p_ref)
 m = βₗ / αₗ
 
-tang_length = 10:findfirst(S .> Sₗ)
+tang_length = 7:findfirst(S .> Sₗ)
 S_tangent = S[tang_length]
 tangent = @. Tₗ + m * (S_tangent - Sₗ)
 
@@ -60,7 +61,7 @@ linkyaxes!(ax[2, 1], ax[1, 1])
 linkxaxes!(ax[1, 2], ax[1, 1])
 
 # Salinity depth
-for i ∈ 1:10
+for i ∈ 1:num_ics
     lines!(ax[1, 1], S₀[i], z, color = ic_colour[i], label = sal_ic_vals_string[i])
 end
 #Temperature depth
@@ -80,6 +81,7 @@ scatter!(ax[1, 2], [S₀[i][end] for i ∈ 1:10], Tᵤ_array;
 axislegend(ax[1, 2], position = :lt)
 ic_plot[2, 2] = Legend(ic_plot, ax[1, 1], "Initial salinity in the mixed layer")
 ic_plot
+#save(joinpath(plotdir, "simulations", "ics.png"), ic_plot)
 
 ## Diffusivity time series κ_ts_fig
 # Change κ to T or S to see other time series
@@ -101,6 +103,7 @@ Colorbar(κ_ts_fig[:, 6];
          colormap = cgrad(:Spectral, 2, categorical = true),
          label = "Diffusivity (m²s⁻¹)", ticks = ([0.25, 0.75], tickvals))
 κ_ts_fig
+#save(joinpath(plotdir, "simulations", "κ_ts.png"), κ_ts_fig)
 
 ## Δρ static and cabbeling time series
 Δρ_s, Δρ_c = Δρ_ts["Δρ_s"], Δρ_ts["Δρ_c"]
@@ -133,5 +136,6 @@ densitydiff_TS[2, :] = Legend(densitydiff_TS, ax[1],
                             orientation = :horizontal)
 
 densitydiff_TS
+#save(joinpath(plotdir, "simulations", "Δρ_ts.png"), densitydiff_TS)
 
 ##Do not have the saved information to make plot with temp of lower level.
