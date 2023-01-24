@@ -12,12 +12,126 @@ t, S_ts, T_ts, κ_ts, Δρ_ts = saved_ts["t"], saved_ts["S_ts"], saved_ts["T_ts"
 close(saved_ts)
 z = -500:5:-5
 length(z)
+
+saved_params = jldopen(joinpath(sim_output, "model_params.jld2"))
+Sᵤ, Sₗ, Sᵣ, Sₘ, Tᵤ, Tₗ, num_ics = saved_params["Sᵤ"], saved_params["Sₗ"], saved_params["Sᵣ"],
+                                  saved_params["Sₘ"], saved_params["Tᵤ"], saved_params["Tₗ"],
+                                  saved_params["num_ics"]
+close(saved_params)
 ## Initial conditions
 S₀, T₀ = [S_ts[:, 1, i] for i ∈ 1:length(S_ts[1, 1, :])],
          [T_ts[:, 1, i] for i ∈ 1:length(T_ts[1, 1, :])]
-lines(T₀[1], z)
-lines(S₀[1], z)
-## Diffusivity time series
-heatmap(t, z, κ_ts[:, :, 1]')
+sal_ic_vals_string = string.(round.([S₀[i][end] for i ∈ 1:10]; digits = 3))
+
+##Setting up initial conditions for the model using a Fofonoff diagram.
+T = range(18, 22, 200)
+T_grid = T' .* ones(length(T))
+S = range(38.35, Sₘ, 200)
+S_grid = S .* ones(length(S))'
+
+ρ = gsw_rho.(S_grid, T_grid, p_ref)
+
+lower_isopycnal = gsw_rho(Sₗ, Tₗ, p_ref)
+
+αₗ = gsw_alpha(Sₗ, Tₗ, p_ref)
+βₗ = gsw_beta(Sₗ, Tₗ, p_ref)
+m = βₗ / αₗ
+
+tang_length = 10:findfirst(S .> Sₗ)
+S_tangent = S[tang_length]
+tangent = @. Tₗ + m * (S_tangent - Sₗ)
+
+Tᵤ_array = fill(Tᵤ, num_ics)
+ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics)))
+
+ic_plot = Figure(resolution = (1000, 1000))
+
+xlabs = ["Salinity (g/kg)" "Temperature (∘C)"; "Salinity (g/kg)" "Temperature (∘C)"]
+ylabs = ["Depth (m)" "Depth (m)"; "Temperature (∘C)" "Temperature (∘C)"]
+titles = ["Salinity ICs" "Temperature ICs";
+         "Fofonoff diagram - used to find the\nsalinity initial conditions in mixed alyer" "Nothing"]
+ax = [Axis(ic_plot[j, i],
+        xlabel = xlabs[j, i],
+        xaxisposition = (j == 1 ? :top : :bottom),
+        ylabel = ylabs[j, i],
+        title = titles[j, i]) for i ∈ 1:2, j ∈ 1:2]
+delete!(ax[2, 2])
+linkyaxes!(ax[2, 1], ax[1, 1])
+linkxaxes!(ax[1, 2], ax[1, 1])
+
+# Salinity depth
+for i ∈ 1:10
+    lines!(ax[1, 1], S₀[i], z, color = ic_colour[i], label = sal_ic_vals_string[i])
+end
+#Temperature depth
+lines!(ax[2, 1], T₀[1], z, color = T₀[1])
+ylims!(ax[2, 1], high = 0)
+# Fofonoff diagram
+contour!(ax[1, 2], S, T, ρ,
+        color = :black,
+        linewidth = 2,
+        levels = [lower_isopycnal],
+        label = "Isopycnal (1027.71)")
+scatter!(ax[1, 2], [Sₗ], [Tₗ], color = :red, label = "Deep water mass")
+lines!(ax[1, 2], S_tangent, tangent, color = :red, label = "Linearised density about\ndeep water mass")
+#lines!(ax[1, 2], Sₗ:0.05:Sₘ, 0.5 * ones(length(Sₗ:0.05:Sₘ)), color = :orange, linestyle = :dot, label = "Salinity in lower layer")
+scatter!(ax[1, 2], [S₀[i][end] for i ∈ 1:10], Tᵤ_array;
+         color = ic_colour, markersize = 4)
+axislegend(ax[1, 2], position = :lt)
+ic_plot[2, 2] = Legend(ic_plot, ax[1, 1], "Initial salinity in the mixed layer")
+ic_plot
+
+## Diffusivity time series κ_ts_fig
+# Change κ to T or S to see other time series
+κ_ts_fig = Figure(resolution = (1400, 800))
+sal_ics = round.([reshape(S_ts[end, 1, 1:5], :) reshape(S_ts[end, 1, 6:10], :)]';
+                 digits = 3)
+ax = [Axis(κ_ts_fig[i, j],
+           title = "Diffusivity - salintiy = $(sal_ics[i, j])",
+           xlabel = "Time (days)",
+           xaxisposition = :top,
+           ylabel = "Depth (metres)") for i ∈ 1:2, j ∈ 1:5]
+k = 1
+for i ∈ 1:2, j ∈ 1:5
+    heatmap!(ax[i, j], t, z, κ_ts[:, :, k]', colormap = :Spectral)
+    k += 1
+end
+tickvals = ["1e-5", "1"]
+Colorbar(κ_ts_fig[:, 6];
+         colormap = cgrad(:Spectral, 2, categorical = true),
+         label = "Diffusivity (m²s⁻¹)", ticks = ([0.25, 0.75], tickvals))
+κ_ts_fig
+
 ## Δρ static and cabbeling time series
-lines(t, Δρ_ts["Δρ_c"][:, 1])
+Δρ_s, Δρ_c = Δρ_ts["Δρ_s"], Δρ_ts["Δρ_c"]
+densitydiff_TS = Figure(resolution = (1000, 700))
+titles = ["Maximum static denstiy difference\nfor ΔΘ_thres = 0.5ᵒC",
+          "Maximum cabbeling density difference\nfor ΔΘ_thres = 0.5ᵒC"]
+ylabs = [L"\Delta \sigma_{0}^{s}", L"\Delta \sigma_{0}^{c}"]
+ylimits = (minimum(Δρ_s)-0.002, maximum(Δρ_c))
+ax = [Axis(densitydiff_TS[1, i],
+        title = titles[i],
+        xlabel = "Time (days)",
+        ylabel = ylabs[i],
+        ylabelsize = 18) for i ∈ 1:2]
+ylims!(ax[1], ylimits)
+ylims!(ax[2], ylimits)
+linkyaxes!(ax[1], ax[2])
+
+line_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics)))
+
+for i ∈ 1:num_ics
+    lines!(ax[1], t, Δρ_s[:, i], color = line_colour[i])
+    scatter!(ax[1], [t[1]], [Δρ_s[1, i]], color = line_colour[i],
+            label = sal_ic_vals_string[i])
+    lines!(ax[2], t, Δρ_c[:, i], color = line_colour[i])
+    scatter!(ax[2], [t[1]], [Δρ_c[1, i]], color = line_colour[i])
+end
+
+densitydiff_TS[2, :] = Legend(densitydiff_TS, ax[1],
+                            "Initial salinity in the mixed layer (g/kg)";
+                            orientation = :horizontal)
+
+densitydiff_TS
+
+##Do not have the saved information to make plot with temp of lower level.
