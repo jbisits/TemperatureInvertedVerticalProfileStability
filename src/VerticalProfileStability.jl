@@ -11,7 +11,7 @@ export
     srcdir
 
 const ECCO_datadir = joinpath(@__DIR__, "../data/observations/ECCO_daily_mean_TS/")
-const sim_datadir = joinpath(@__DIR__, "../data/simulations")
+const sim_datadir = joinpath(@__DIR__, "../data/simulations/")
 const plotdir = joinpath(@__DIR__, "../plots")
 const srcdir = joinpath(@__DIR__)
 

@@ -3,11 +3,9 @@ module WaterColumnModel
 export
     run_model,
     run_model_two_layer,
-    Δρ,
     order_files,
     order_mat,
     vec2mat,
-    save_densitydiff!,
     save_timeseries!
 
 using Oceananigans, SeawaterPolynomials.TEOS10, JLD2, Glob, GibbsSeaWater
@@ -279,7 +277,7 @@ function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
 
         for step ∈ 1:num_steps
 
-            # The arrays for depth, prpessure have been reversed as it is
+            # The arrays for depth, pressure have been reversed as it is
             # conceptually easier to work with so T and S have to be as well
             T_profile = reverse(T_steps[step])
             S_profile = reverse(S_steps[step])
@@ -294,7 +292,7 @@ function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
 
                     Θₗ = T_profile[lower_level]
                     ΔΘ = Θᵤ - Θₗ
-                    if  abs(Θᵤ - Θₗ) > ΔΘ_thres
+                    if  abs(ΔΘ) > ΔΘ_thres
                         Sₗ = S_profile[lower_level]
                         ΔS = Sᵤ - Sₗ
                         ρᵤ = gsw_rho(Sᵤ, Θᵤ, p_ref)
@@ -473,24 +471,14 @@ function extract_∂z_b_ts(data_files::Vector{String})
 end
 
 """
-    function save_densitydiff!(filename::String, data_files::Vector{String})
-Save the time series for the density difference for 100m plus and at the interfaces.
+    function save_timeseries!(filename::String, data_files::Vector{String};
+                                ΔΘ_thres = 0.5, p_ref = 0)
+Save the time series of `T`, `S`, `κ`, `∂z_b` and Δρ (the maximum density difference where the
+temperature difference between the upper and lower level (ΔΘ) is greater than `ΔΘ_thres`)
+from the output data. All `GibbsSeaWater` computations use reference pressure p_ref.
 """
-function save_densitydiff!(filename::String, data_files::Vector{String}; ΔΘ_thres = 0.5)
-
-    Δρ_ = Δρ(data_files, ΔΘ_thres, 0)
-    Δρ_s, Δρ_c = Δρ_["Δρ_s"], Δρ_["Δρ_c"]
-    Δρ_interfaces = Δρ_interface(data_files, ΔΘ_thres, 0)
-    Δρ_sᵢ, Δρ_cᵢ = Δρ_interfaces["Δρ_s"], Δρ_interfaces["Δρ_c"]
-    jldsave(filename; Δρ_s, Δρ_c, Δρ_sᵢ, Δρ_cᵢ)
-
-    return nothing
-end
-"""
-    function save_timeseries!(filename::String, data_files::Vector{String})
-Save the time series of T, S, κ and ∂z_b from the output data.
-"""
-function save_timeseries!(filename::String, data_files::Vector{String}; abs_tol = 1e-13)
+function save_timeseries!(filename::String, data_files::Vector{String};
+                            ΔΘ_thres = 0.5, p_ref = 0)
 
     @info "Time"
     t = extract_t(data_files)
@@ -502,10 +490,10 @@ function save_timeseries!(filename::String, data_files::Vector{String}; abs_tol 
     κ_ts = extract_κ_ts(data_files)
     @info "Buoyancy gradient"
     ∂z_b_ts = extract_∂z_b_ts(data_files)
-    @info "Corrected diffusivity"
-    corrected_κ_ts = correct_κ(κ_ts, ∂z_b_ts, data_files; abs_tol = abs_tol)
+    @info "Maximum density difference"
+    Δρ_ts = Δρ(data_files, ΔΘ_thres, p_ref)
 
-    jldsave(filename; t, T_ts, S_ts, κ_ts, ∂z_b_ts, corrected_κ_ts)
+    jldsave(filename; t, T_ts, S_ts, κ_ts, ∂z_b_ts, Δρ_ts)
     return nothing
 end
 
