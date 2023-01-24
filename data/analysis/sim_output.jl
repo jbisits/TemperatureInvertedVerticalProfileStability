@@ -1,11 +1,15 @@
 using CairoMakie, JLD2
-## Choose which simulation
-## Initial temperature -1.85 and 0.5ᵒC
-sim_output = joinpath(sim_datadir, "initial_Θ_minus1_85_0_5")
-## Initial temperature 18.15 and 20.5ᵒC
-sim_output = joinpath(sim_datadir, "initial_Θ_18_15_20_5")
 
-## Open chosen simulation
+############################################################################################
+## Choose which simulation
+############################################################################################
+simulations = ("initial_Θ_minus1_85_0_5", "initial_Θ_18_15_20_5")
+sim_num = 2 # Chnage this to look at other simulations
+sim_output = joinpath(sim_datadir, simulations[sim_num])
+
+############################################################################################
+## Open and load data from chosen simulation, then extract initial conditions
+############################################################################################
 saved_ts = jldopen(joinpath(sim_output, "output_timeseries.jld2"))
 t, S_ts, T_ts, κ_ts, Δρ_ts = saved_ts["t"], saved_ts["S_ts"], saved_ts["T_ts"],
                              saved_ts["κ_ts"], saved_ts["Δρ_ts"]
@@ -17,14 +21,16 @@ saved_params = jldopen(joinpath(sim_output, "model_params.jld2"))
 Sᵤ, Sₗ, Sᵣ, Sₘ, Tᵤ, Tₗ, num_ics = saved_params["Sᵤ"], saved_params["Sₗ"], saved_params["Sᵣ"],
                                   saved_params["Sₘ"], saved_params["Tᵤ"], saved_params["Tₗ"],
                                   saved_params["num_ics"]
-if num_ics != 10; num_ics = 10; end
+if num_ics != 10; num_ics = 10; end # Can remove this if 11th sim from "initial_Θ_minus1_85_0_5" is removed.
 close(saved_params)
-## Initial conditions
+
 S₀, T₀ = [S_ts[:, 1, i] for i ∈ 1:length(S_ts[1, 1, :])],
          [T_ts[:, 1, i] for i ∈ 1:length(T_ts[1, 1, :])]
 sal_ic_vals_string = string.(round.([S₀[i][end] for i ∈ 1:10]; digits = 3))
 
-##Setting up initial conditions for the model using a Fofonoff diagram.
+############################################################################################
+## Initial conditions for the simulation
+############################################################################################
 T = range(Tᵤ - 0.5, Tₗ + 0.5, 200)
 T_grid = T' .* ones(length(T))
 S = range(S₀[1][end] - 0.02, Sₘ, 200)
@@ -81,10 +87,12 @@ scatter!(ax[1, 2], [S₀[i][end] for i ∈ 1:10], Tᵤ_array;
 axislegend(ax[1, 2], position = :lt)
 ic_plot[2, 2] = Legend(ic_plot, ax[1, 1], "Initial salinity in the mixed layer")
 ic_plot
-#save(joinpath(plotdir, "simulations", "ics.png"), ic_plot)
+#save(joinpath(plotdir, "simulations", simulations[sim_num], "ics.png"), ic_plot)
 
-## Diffusivity time series κ_ts_fig
-# Change κ to T or S to see other time series
+############################################################################################
+## Diffusivity time series from the simulation
+#  Change κ to T or S to see other time series
+############################################################################################
 κ_ts_fig = Figure(resolution = (1400, 800))
 sal_ics = round.([reshape(S_ts[end, 1, 1:5], :) reshape(S_ts[end, 1, 6:10], :)]';
                  digits = 3)
@@ -103,9 +111,11 @@ Colorbar(κ_ts_fig[:, 6];
          colormap = cgrad(:Spectral, 2, categorical = true),
          label = "Diffusivity (m²s⁻¹)", ticks = ([0.25, 0.75], tickvals))
 κ_ts_fig
-#save(joinpath(plotdir, "simulations", "κ_ts.png"), κ_ts_fig)
+#save(joinpath(plotdir, "simulations", simulations[sim_num], "κ_ts.png"), κ_ts_fig)
 
+############################################################################################
 ## Δρ static and cabbeling time series
+############################################################################################
 Δρ_s, Δρ_c = Δρ_ts["Δρ_s"], Δρ_ts["Δρ_c"]
 densitydiff_TS = Figure(resolution = (1000, 700))
 titles = ["Maximum static denstiy difference\nfor ΔΘ_thres = 0.5ᵒC",
@@ -136,6 +146,6 @@ densitydiff_TS[2, :] = Legend(densitydiff_TS, ax[1],
                             orientation = :horizontal)
 
 densitydiff_TS
-#save(joinpath(plotdir, "simulations", "Δρ_ts.png"), densitydiff_TS)
+#save(joinpath(plotdir, "simulations", simulations[sim_num], "Δρ_ts.png"), densitydiff_TS)
 
 ##Do not have the saved information to make plot with temp of lower level.
