@@ -62,7 +62,7 @@ S_max_sal_idx = findfirst(ρ[:, upper_level_T_idx] .>= lower_isopycnal)
 S_ic_dist_to_isopycnal = S[S_max_sal_idx] - 34.57
 
 # Create another 4 sets of initial conditions each increasing by 2ᵒC.
-T_increments = [2, 4, 6, 8]
+T_increments = 2 .* [1, 2, 3, 4]
 for T_increment ∈ T_increments
     Tₗ_2 = Tₗ + T_increment
     Tₗ_2_find = findfirst(T .>= Tₗ_2)
