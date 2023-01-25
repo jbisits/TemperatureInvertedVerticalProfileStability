@@ -90,6 +90,7 @@ for T_increment ∈ T_increments
     scatter!(ax, s_range_2, Tᵤ_2, color = ic_colour)
 end
 ic_plot
+#save(joinpath(plotdir, "simulations", "Fof_diagram_single_plot.png"), ic_plot)
 
 # Now can just write a function to find the values for `Tᵤ` and `Tₗ`,
 # `Sᵤ`, `Sₗ`, `Sₘ` and `Sᵣ`. I think that should do everthing correctly. Although the model
