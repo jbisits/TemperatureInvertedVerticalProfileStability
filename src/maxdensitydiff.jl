@@ -132,8 +132,12 @@ end
 
 """
     function series_max_Δρ(raster_series::RasterSeries; zdepth = -1000.0)
+    function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64,
+                           savepath::AbstractString; zdepth = -1000.0, filetype = ".nc")
 Compute the static and cabbeling density difference from data that is saved as a
-`RasterSeries`.
+`RasterSeries`. Adding the argument `savepath` will save each `RasterStack` from the input
+`raster_series` as a separate file. By default filetype is `.nc` though `.jld2` should also
+work, just require a different workflow to open and look at etc.
 """
 function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64; zdepth = -1000.0)
 
@@ -163,6 +167,36 @@ function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64; zdept
     end
 
     return RasterSeries(dd_rs_stacks, timestamps)
+
+end
+function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64,
+                       savepath::AbstractString; zdepth = -1000.0, filetype = ".nc")
+
+    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ]
+    var_mats = Array{Array}(undef, length(var_names))
+    x, y, time = dims(raster_series[Ti(1)], X), dims(raster_series[Ti(1)], Y),
+                 dims(raster_series[Ti(1)], Ti)
+    timestamps = dims(raster_series, Ti)
+
+    for (i, stack) ∈ enumerate(raster_series)
+
+        @info "Date $(timestamps[i])"
+
+        converted_stack = convert_ocean_vars(stack, (Sₚ = :SALT, θ = :THETA))
+        profile_max_res = profiles_Δρ_max(converted_stack, zdepth, ΔΘ_thres)
+        var_mats[1] = profile_max_res.Δρ_cab_max
+        var_mats[2] = profile_max_res.Δρ_static_max
+        var_mats[3] = Θ_upper(converted_stack[:Θ], profile_max_res.upper_level_idx)
+        var_mats[4] = Θ_lower(converted_stack[:Θ], profile_max_res.lower_level_idx)
+        var_mats[5] = ΔΘ(converted_stack[:Θ], profile_max_res.upper_level_idx,
+                                     profile_max_res.lower_level_idx)
+        rs = [Raster(var_mats[j], (x, y, time); name = var_names[j])
+                for j ∈ eachindex(var_mats)]
+        write(joinpath(savepath, filetype), RasterStack(rs...); suffix = "$(timestamps[i])")
+
+    end
+
+    return nothing
 
 end
 
