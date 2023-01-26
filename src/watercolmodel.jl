@@ -6,7 +6,8 @@ export
     order_files,
     order_mat,
     vec2mat,
-    save_timeseries!
+    save_timeseries!,
+    save_Δρ_timeseries!
 
 using Oceananigans, SeawaterPolynomials.TEOS10, JLD2, Glob, GibbsSeaWater
 using Oceananigans.Units: seconds, minutes, hours, days
@@ -487,6 +488,21 @@ function save_timeseries!(filename::String, data_files::Vector{String};
     Δρ_ts = Δρ(data_files, ΔΘ_thres, p_ref)
 
     jldsave(filename; t, T_ts, S_ts, κ_ts, ∂z_b_ts, Δρ_ts)
+    return nothing
+end
+"""
+    function save_Δρ_timeseries!(filename::String, data_files::Vector{String};
+                                 ΔΘ_thres = 0.5, p_ref = 0)
+Only save the density difference timeseries. This is to more quickly look at different
+values for for `ΔΘ_thres`.
+"""
+function save_Δρ_timeseries!(filename::String, data_files::Vector{String};
+                             ΔΘ_thres = 0.5, p_ref = 0)
+
+    @info "Maximum density difference"
+    Δρ_ts = Δρ(data_files, ΔΘ_thres, p_ref)
+
+    jldsave(filename; Δρ_ts)
     return nothing
 end
 
