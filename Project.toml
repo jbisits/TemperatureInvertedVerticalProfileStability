@@ -9,3 +9,9 @@ Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 Rasters = "a3a2b9e3-a471-40c9-b274-f788e487c689"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
