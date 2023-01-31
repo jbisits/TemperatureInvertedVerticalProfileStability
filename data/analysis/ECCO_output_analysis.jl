@@ -12,7 +12,8 @@ output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
 # I had the order wrong when saving to symbols. This means that
 # :ΔΘ => :pᵤ, :pᵤ => :pₗ, :pₗ => :ΔΘ.
 # This has been corrected in the function now but means might need to re run
-# so that code can be reused. No just change the symbols in the `RasterSeries`!
+# so that code can be reused. No just change the symbols in the `RasterSeries` for
+# the ΔΘ = 2 output.
 ########
 
 Θₗ = series2vec(output_series, :Θₗ)
