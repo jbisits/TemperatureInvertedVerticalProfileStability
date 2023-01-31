@@ -47,8 +47,3 @@ ylims!(ax[1], -0.1, 0)
 ylims!(ax[2], -0.1, 0)
 #fig
 save(joinpath(plotdir, "ECCO", "Jan2007_ΔΘ_thres_2_zoomzoom.png"), fig)
-
-## Saving files of variables from the monthly data
-mkdir(joinpath(@__DIR__, "output_$ΔΘ_thres"))
-savepath = joinpath(@__DIR__, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
