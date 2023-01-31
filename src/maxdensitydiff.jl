@@ -141,7 +141,7 @@ work, just require a different workflow to open and look at etc.
 """
 function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64; zdepth = -1000.0)
 
-    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ]
+    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ, :pᵤ, :pₗ, :Δp]
     var_mats = Array{Array}(undef, length(var_names))
     x, y, time = dims(raster_series[Ti(1)], X), dims(raster_series[Ti(1)], Y),
                  dims(raster_series[Ti(1)], Ti)
@@ -158,8 +158,12 @@ function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64; zdept
         var_mats[2] = profile_max_res.Δρ_static_max
         var_mats[3] = Θ_upper(converted_stack[:Θ], profile_max_res.upper_level_idx)
         var_mats[4] = Θ_lower(converted_stack[:Θ], profile_max_res.lower_level_idx)
-        var_mats[5] = ΔΘ(converted_stack[:Θ], profile_max_res.upper_level_idx,
-                                     profile_max_res.lower_level_idx)
+        var_mats[5] = p_upper(converted_stack[:p], profile_max_res.upper_level_idx)
+        var_mats[6] = p_lower(converted_stack[:p], profile_max_res.lower_level_idx)
+        var_mats[7] = ΔΘ(converted_stack[:Θ], profile_max_res.upper_level_idx,
+                                              profile_max_res.lower_level_idx)
+        var_mats[8] = Δp(converted_stack[:p], profile_max_res.upper_level_idx,
+                                              profile_max_res.lower_level_idx)
         rs = [Raster(var_mats[j], (x, y, time); name = var_names[j])
                 for j ∈ eachindex(var_mats)]
         dd_rs_stacks[i] = RasterStack(rs...)
@@ -172,7 +176,7 @@ end
 function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64,
                        savepath::AbstractString; zdepth = -1000.0, filetype = ".nc")
 
-    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ]
+    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ, :pᵤ, :pₗ, :Δp]
     var_mats = Array{Array}(undef, length(var_names))
     x, y, time = dims(raster_series[Ti(1)], X), dims(raster_series[Ti(1)], Y),
                  dims(raster_series[Ti(1)], Ti)
@@ -188,11 +192,16 @@ function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64,
         var_mats[2] = profile_max_res.Δρ_static_max
         var_mats[3] = Θ_upper(converted_stack[:Θ], profile_max_res.upper_level_idx)
         var_mats[4] = Θ_lower(converted_stack[:Θ], profile_max_res.lower_level_idx)
-        var_mats[5] = ΔΘ(converted_stack[:Θ], profile_max_res.upper_level_idx,
-                                     profile_max_res.lower_level_idx)
+        var_mats[5] = p_upper(converted_stack[:p], profile_max_res.upper_level_idx)
+        var_mats[6] = p_lower(converted_stack[:p], profile_max_res.lower_level_idx)
+        var_mats[7] = ΔΘ(converted_stack[:Θ], profile_max_res.upper_level_idx,
+                                              profile_max_res.lower_level_idx)
+        var_mats[8] = Δp(converted_stack[:p], profile_max_res.upper_level_idx,
+                                              profile_max_res.lower_level_idx)
         rs = [Raster(var_mats[j], (x, y, time); name = var_names[j])
                 for j ∈ eachindex(var_mats)]
-        write(joinpath(savepath, filetype), RasterStack(rs...); suffix = "$(timestamps[i])")
+        save_stack = RasterStack(rs...)
+        write(joinpath(savepath, "$(timestamps[i])_$(ΔΘ_thres)"*filetype), save_stack)
 
     end
 
@@ -287,7 +296,7 @@ end
 
 """
     function ΔΘ(Θ::Raster, upper_idx::Array, lower_idx::Array)
-Compute the temperature difference between the two levels at which the `max_density_angle`
+Compute the temperature difference between the two levels at which the maximum static density
 is computed.
 """
 function ΔΘ(Θ::Raster, upper_idx::Array, lower_idx::Array)
@@ -295,6 +304,58 @@ function ΔΘ(Θ::Raster, upper_idx::Array, lower_idx::Array)
     ΔΘ_mat = Θ_upper(Θ, upper_idx) - Θ_lower(Θ, lower_idx)
 
     return ΔΘ_mat
+
+end
+"""
+    function p_lower(p::Raster, lower_idx::Array)
+Find pressure of lower water mass used for the maximum density difference calculation.
+"""
+function p_lower(p::Raster, lower_idx::Array)
+
+    lons, lats = dims(p, X), dims(p, Y)
+    pₗ_mat = similar(Array(p[Z(1)]))
+    for i ∈ eachindex(lons), j ∈ eachindex(lats)
+
+        idx = lower_idx[i, j, 1]
+        if !ismissing(idx)
+            pₗ_mat[i, j, 1] = p[i, j, idx, 1]
+        end
+
+    end
+
+    return pₗ_mat
+end
+
+"""
+    function p_upper(p::Raster, upper_idx::Array)
+Find pressure of upper water mass used for the maximum density difference calculation.
+"""
+function p_upper(p::Raster, upper_idx::Array)
+
+    lons, lats = dims(p, X), dims(p, Y)
+    pᵤ_mat = similar(Array(p[Z(1)]))
+    for i ∈ eachindex(lons), j ∈ eachindex(lats)
+
+        idx = upper_idx[i, j, 1]
+        if !ismissing(idx)
+            pᵤ_mat[i, j, 1] = p[i, j, idx, 1]
+        end
+
+    end
+
+    return pᵤ_mat
+
+end
+"""
+    function Δp(p::Raster, upper_idx::Array, lower_idx::Array)
+Compute the pressure difference between the two levels at which the maximum static density
+is computed.
+"""
+function Δp(p::Raster, upper_idx::Array, lower_idx::Array)
+
+    Δp_mat = abs.(p_upper(p, upper_idx) - p_lower(p, lower_idx))
+
+    return Δp_mat
 
 end
 
