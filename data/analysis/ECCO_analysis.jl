@@ -5,7 +5,8 @@ ECCO_data = glob("*.nc", ECCO_datadir)
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 01, 31)
 series = RasterSeries(ECCO_data[1:31], Ti(timestamps); child = RasterStack)
 
-ΔΘ_thres = 0.5
+## Compute max denisty difference for given ΔΘ_thres and extract data to plot
+ΔΘ_thres = 2.0
 Δρ_max_series = series_max_Δρ(series, ΔΘ_thres)
 
 Θₗ = series2vec(Δρ_max_series, :Θₗ)
@@ -38,12 +39,12 @@ for (i, Δρ_) ∈ enumerate(Δρ)
 end
 Colorbar(fig[2, :], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)
 #fig
-save(joinpath(plotdir, "ECCO", "Jan2007_ΔΘ_thres_0_5.png"), fig)
+save(joinpath(plotdir, "ECCO", "Jan2007_ΔΘ_thres_2.png"), fig)
 ylims!(ax[1], -0.5, 0)
 ylims!(ax[2], -0.5, 0)
 #fig
-save(joinpath(plotdir, "ECCO", "Jan2007_ΔΘ_thres_0_5_zoom.png"), fig)
+save(joinpath(plotdir, "ECCO", "Jan2007_ΔΘ_thres_2_zoom.png"), fig)
 ylims!(ax[1], -0.1, 0)
 ylims!(ax[2], -0.1, 0)
 #fig
-save(joinpath(plotdir, "ECCO", "Jan2007_ΔΘ_thres_0_5_zoomzoom.png"), fig)
+save(joinpath(plotdir, "ECCO", "Jan2007_ΔΘ_thres_2_zoomzoom.png"), fig)
