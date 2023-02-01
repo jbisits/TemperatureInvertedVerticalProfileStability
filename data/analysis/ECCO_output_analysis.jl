@@ -3,7 +3,8 @@ using .VerticalProfileStability
 
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 ΔΘ_thres = [0.5, 1.0, 2.0]
-output_path = joinpath(@__DIR__, "output_$(ΔΘ_thres[3])")
+select_ΔΘ = 2
+output_path = joinpath(@__DIR__, "output_$(ΔΘ_thres[select_ΔΘ])")
 output_files = glob("*.nc", output_path)
 output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
 
@@ -26,7 +27,7 @@ lats = get_lats(output_series, :Θₗ)
 fig = Figure(size = (1200, 600))
 dd = ["static", "cabbeling"]
 ax = [Axis(fig[1, i];
-          title = "Maximum $(dd[i]) density difference of a\nprofile against temperature of lower level\nwhere max dd was calculated with ΔΘ = $(ΔΘ_thres[3])",
+          title = "Maximum $(dd[i]) density difference of a\nprofile against temperature of lower level\nwhere max dd was calculated with ΔΘ = $(ΔΘ_thres[select_ΔΘ])",
           subtitle = "ECCO data 2007",
           xlabel = "Θ (ᵒC) at lower level",
           xaxisposition = :top,
@@ -49,7 +50,7 @@ for (i, Δρ_) ∈ enumerate(Δρ)
 end
 Colorbar(fig[2, :], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)
 #fig
-save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_2_zoom.png"), fig)
+save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_1_zoom.png"), fig)
 
 ΔΘ_vals = series2vec(output_series, :pₗ)
 hist(ΔΘ_vals)
