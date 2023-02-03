@@ -112,7 +112,7 @@ freezing_pt = gsw_ct_freezing.(S, p_ref, 1)
 Sₗ, Tₗ = 34.7,  0.5
 lower_isopycnal = gsw_rho(Sₗ, Tₗ, p_ref)
 
-fig = Figure(resolution = (800, 800))
+fig = Figure(resolution = (500, 500))
 ax = Axis(fig[1, 1],
         xlabel = "Absolute salinity (g/kg)",
         ylabel = "Conservative temperature (∘C)")
@@ -122,7 +122,6 @@ contour!(ax, S, T, ρ,
         linewidth = 2,
         levels = [lower_isopycnal],
         label = "Isopycnal (1027.71)")
-fig
 
 αₗ = gsw_alpha(Sₗ, Tₗ, p_ref)
 βₗ = gsw_beta(Sₗ, Tₗ, p_ref)
@@ -136,11 +135,18 @@ fig
 
 ## Threshold Δρ for different values. Need to sort this out as its not right at the moment.
 
-δΘ_vals = .-[0.25, 0.5, 1, 2]
-Δρ_thres = [gsw_rho(Sₗ + (αₗ / βₗ) * (δΘ - Tₗ), δΘ - Tₗ, p_ref) - gsw_rho(Sₗ, Tₗ, p_ref)
-            for δΘ ∈ δΘ_vals]
+δΘ = [0.25, 0.5, 1, 2]
+δS = @. Sₗ - (αₗ / βₗ) * (δΘ)
+scatter!(ax, δS, Tₗ .- δΘ; color = :orange)
+fig
+save(joinpath(plotdir, "Δρ_thres_ex.png"), fig)
 
-lines(δΘ_vals, Δρ_thres)
+Tₗ_2 = Tₗ + 2
+δΘ = 0:-0.01:-2
+δS = @. Sₗ + (αₗ / βₗ) * (δΘ - Tₗ)
+Δρ_thres = @. gsw_rho(δS, δΘ - Tₗ, p_ref) - gsw_rho(Sₗ, Tₗ, p_ref)
+
+lines(δΘ, Δρ_thres)
 
 ## Looking at single δΘ for mulitple lower level temperatures
 
@@ -169,7 +175,7 @@ contour!(ax, S, T, ρ;
          label = "Isopycnal (1027.71)")
 
 #Θ = range(0, 20, length = 100)
-Θ = [0.5, 2, 4, 10]
+Θ = LinRange(0.5, 20, 100)
 
 finds_T = [findfirst(T .>= Θ_) for Θ_ ∈ Θ]
 finds_S = [findfirst(ρ[:, finds_T_] .>= lower_isopycnal) for finds_T_ ∈ finds_T]
@@ -178,18 +184,36 @@ for i ∈ eachindex(Θ)
     scatter!(ax, [Sₐ[i]], [Θ[i]]; color = :red)
 end
 fig
+
+## Δρ_thres
 p_ref = 0.0
-Δρ_thres = similar(Θ)
+Δρ_thres_lower = similar(Θ)
+Δρ_thres_upper = similar(Θ)
 δΘ = 2.0
+
 for i ∈ eachindex(Θ)
 
     αₗ = gsw_alpha(Sₐ[i], Θ[i], p_ref)
     βₗ = gsw_beta(Sₐ[i], Θ[i], p_ref)
 
-    Δρ_thres[i] = gsw_rho(Sₐ[i] + (αₗ / βₗ) * (δΘ - Θ[i]), δΘ - Θ[i], p_ref) -
-                  gsw_rho(Sₐ[i], Θ[i], p_ref)
+    δS_lower = Sₐ[i] - (αₗ / βₗ) * (δΘ)
+    δS_upper = Sₐ[i] + (αₗ / βₗ) * (δΘ)
+    scatter!(ax, [δS_lower], [Θ[i] - δΘ]; color  = :orange)
+    scatter!(ax, [δS_upper], [Θ[i] + δΘ]; color  = :green)
+    Δρ_thres_lower[i] = gsw_rho(δS_lower, Θ[i] - δΘ, p_ref) - gsw_rho(Sₐ[i], Θ[i], p_ref)
+    Δρ_thres_upper[i] = gsw_rho(δS_upper, Θ[i] + δΘ, p_ref) - gsw_rho(Sₐ[i], Θ[i], p_ref)
 
 end
+fig
 
-lines(Θ, Δρ_thres)
-Δρ_thres
+fig2 = Figure()
+ax = Axis(fig2[1, 1];
+          xlabel = "Θ (ᵒC) of lower level",
+          xaxisposition = :top,
+          ylabel = "Δρ_thres (kgm⁻³)",
+          title = "Δρ threshold for ΔΘ threshold = $δΘ ᵒC against temperature of lower level"
+          )
+lines!(ax, Θ, Δρ_thres_lower; label = "Upper water parcel colder")
+lines!(ax, Θ, Δρ_thres_upper; label = "Upper water parcel warmer")
+axislegend(ax; position = :rb)
+fig2
