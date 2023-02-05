@@ -187,22 +187,26 @@ fig
 
 ## Δρ_thres
 p_ref = 0.0
-Δρ_thres_lower = similar(Θ)
-Δρ_thres_upper = similar(Θ)
-δΘ = 2.0
+δΘ = [0.25, 0.5, 1.0, 2.0]
+Δρ_thres_lower = Array{Float64}(undef, length(Θ), length(δΘ))
+Δρ_thres_upper = similar(Δρ_thres_lower)
 
-for i ∈ eachindex(Θ)
+for (j, δΘ_) ∈ enumerate(δΘ)
+    for i ∈ eachindex(Θ)
 
-    αₗ = gsw_alpha(Sₐ[i], Θ[i], p_ref)
-    βₗ = gsw_beta(Sₐ[i], Θ[i], p_ref)
+        αₗ = gsw_alpha(Sₐ[i], Θ[i], p_ref)
+        βₗ = gsw_beta(Sₐ[i], Θ[i], p_ref)
 
-    δS_lower = Sₐ[i] - (αₗ / βₗ) * (δΘ)
-    δS_upper = Sₐ[i] + (αₗ / βₗ) * (δΘ)
-    scatter!(ax, [δS_lower], [Θ[i] - δΘ]; color  = :orange)
-    scatter!(ax, [δS_upper], [Θ[i] + δΘ]; color  = :green)
-    Δρ_thres_lower[i] = gsw_rho(δS_lower, Θ[i] - δΘ, p_ref) - gsw_rho(Sₐ[i], Θ[i], p_ref)
-    Δρ_thres_upper[i] = gsw_rho(δS_upper, Θ[i] + δΘ, p_ref) - gsw_rho(Sₐ[i], Θ[i], p_ref)
+        δS_lower = Sₐ[i] - (αₗ / βₗ) * (δΘ_)
+        δS_upper = Sₐ[i] + (αₗ / βₗ) * (δΘ_)
+        # scatter!(ax, [δS_lower], [Θ[i] - δΘ_]; color  = :orange)
+        # scatter!(ax, [δS_upper], [Θ[i] + δΘ_]; color  = :green)
+        Δρ_thres_lower[i, j] = gsw_rho(δS_lower, Θ[i] - δΘ_, p_ref) -
+                               gsw_rho(Sₐ[i], Θ[i], p_ref)
+        Δρ_thres_upper[i, j] = gsw_rho(δS_upper, Θ[i] + δΘ_, p_ref) -
+                               gsw_rho(Sₐ[i], Θ[i], p_ref)
 
+    end
 end
 fig
 
@@ -213,7 +217,9 @@ ax = Axis(fig2[1, 1];
           ylabel = "Δρ_thres (kgm⁻³)",
           title = "Δρ threshold for ΔΘ threshold = $δΘ ᵒC against temperature of lower level"
           )
-lines!(ax, Θ, Δρ_thres_lower; label = "Upper water parcel colder")
-lines!(ax, Θ, Δρ_thres_upper; label = "Upper water parcel warmer")
+#lines!(ax, Θ, Δρ_thres_lower; label = "Upper water parcel colder")
+#series!(ax, Θ, Δρ_thres_upper'; labels = string.(δΘ) .* "ᵒC")
+series!(ax, Θ, Δρ_thres_lower'; labels = string.(δΘ) .* "ᵒC")
 axislegend(ax; position = :rb)
 fig2
+#save(joinpath(plotdir, "Δρ_thres_multiple_deg.png"), fig2)
