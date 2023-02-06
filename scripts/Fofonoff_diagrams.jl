@@ -1,4 +1,5 @@
-using CairoMakie, ColorSchemes, GibbsSeaWater
+using .VerticalProfileStability
+using ColorSchemes
 
 ## Setting up initial conditions for the model using a Fofonoff diagram.
 T = range(-2, 22, 5000)

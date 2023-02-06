@@ -1,8 +1,8 @@
 module VerticalProfileStability
 
-using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, Reexport
+using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, CairoMakie, Reexport
 
-@reexport using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, Dates
+@reexport using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, Dates, CairoMakie
 
 export
     ECCO_datadir,
@@ -17,6 +17,7 @@ const srcdir = joinpath(@__DIR__)
 
 include("maxdensitydiff.jl")
 include("watercolmodel.jl")
+include("makierasterplot.jl")
 
 @reexport using .VerticalProfileStability.MaximumDensityDifference
 @reexport using .VerticalProfileStability.WaterColumnModel

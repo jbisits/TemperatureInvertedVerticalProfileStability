@@ -1,4 +1,3 @@
-using CairoMakie
 using .VerticalProfileStability
 
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
