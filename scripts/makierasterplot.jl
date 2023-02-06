@@ -2,6 +2,7 @@ using CairoMakie
 using .VerticalProfileStability
 
 # Trying to write `convert_arguments` for a `Raster`, this works!!
+# Can write other recipes (scatter would be good if needed).
 
 function Makie.convert_arguments(P::SurfaceLike, rs::Raster)
 
@@ -13,6 +14,7 @@ function Makie.convert_arguments(P::SurfaceLike, rs::Raster)
 end
 
 heatmap(output_series[Ti(1)][:Θᵤ])
+contourf(output_series[Ti(1)][:Θᵤ])
 
 ## Expected output
 heatmap(Matrix(output_series[Ti(1)][:Θᵤ][:, :, 1]))
