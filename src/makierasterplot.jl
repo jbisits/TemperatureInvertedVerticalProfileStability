@@ -29,7 +29,7 @@ end
 # contourf(output_series[Ti(1)][:Θᵤ])
 # scatter(output_series[Ti(1)][:Θₗ], output_series[Ti(1)][:Δρ_cab])
 
-## Plotting for a series
+## Example of plotting for a series
 # fig = Figure()
 # ax = Axis(fig[1, 1])
 # for s ∈ output_series[Ti(1:2)]
