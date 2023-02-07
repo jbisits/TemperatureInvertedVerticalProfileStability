@@ -13,3 +13,15 @@ data_files = order_files(data_files)
 
 saved_timeseries = joinpath(sim_data_path, "output_timeseries.jld2")
 save_timeseries!(saved_timeseries, data_files)
+
+## ΔΘ_thres = 0.25
+ΔΘ_thres_0_25_timeseries = joinpath(sim_data_path, "ΔΘ_thres_0_25_timeseries.jld2")
+save_Δρ_timeseries!(ΔΘ_thres_0_25_timeseries, data_files; ΔΘ_thres = 0.25)
+
+## ΔΘ_thres = 1.0
+ΔΘ_thres_1_timeseries = joinpath(sim_data_path, "ΔΘ_thres_1_timeseries.jld2")
+save_Δρ_timeseries!(ΔΘ_thres_1_timeseries, data_files; ΔΘ_thres = 1.0)
+
+## ΔΘ_thres = 2.0
+ΔΘ_thres_2_timeseries = joinpath(sim_data_path, "ΔΘ_thres_2_timeseries.jld2")
+save_Δρ_timeseries!(ΔΘ_thres_2_timeseries, data_files; ΔΘ_thres = 2.0)
