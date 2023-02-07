@@ -244,10 +244,14 @@ end
 
 """
     function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
-Find the greatest denstiy difference over the water column from the ouput of a
-one dimensional model. This method uses a reference pressure, `p_ref`, instead of
-midpoint or lower pressure for the density difference calculations. The simulations I will
-run as part of this will use reference pressure so only have this method here.
+    function Δρ(data_files::Vector{String}, ΔΘ_thres::Vector{Float64}, p_ref::Int64)
+Find the greatest denstiy difference between two levels of the water column at each timestep
+of saved simulation data (at reference pressure `p_ref`) where:
+
+- if `ΔΘ_thres` is a `Float64`, the absolute temperature difference between the levels must
+be greater than `ΔΘ_thres`; or
+- if `ΔΘ_thres` is a two element `Vector{Float64}` the absolute temperature difference must
+be between the two values given in `ΔΘ_thres`.
 """
 function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
 
@@ -287,6 +291,72 @@ function Δρ(data_files::Vector{String}, ΔΘ_thres::Float64, p_ref::Int64)
                     Θₗ = T_profile[lower_level]
                     ΔΘ = Θᵤ - Θₗ
                     if  abs(ΔΘ) > ΔΘ_thres
+                        Sₗ = S_profile[lower_level]
+                        ΔS = Sᵤ - Sₗ
+                        ρᵤ = gsw_rho(Sᵤ, Θᵤ, p_ref)
+                        ρₗ = gsw_rho(Sₗ, Θₗ, p_ref)
+                        Δρ_s_level = ρᵤ - ρₗ
+                        push!(temp_Δρ_s, Δρ_s_level)
+                        α = gsw_alpha(Sₗ, Θₗ, p_ref)
+                        β = gsw_beta(Sₗ, Θₗ, p_ref)
+                        Δρ_c_level = ρₗ * (β * ΔS - α * ΔΘ)
+                        push!(temp_Δρ_c, Δρ_c_level)
+                    end
+
+                end
+
+            end
+
+            if !isempty(temp_Δρ_s)
+                Δρ_s[step, i] = maximum(temp_Δρ_s)
+                Δρ_c[step, i] = maximum(temp_Δρ_c)
+            end
+
+        end
+
+    end
+
+    return Dict("Δρ_s" => Δρ_s,
+                "Δρ_c" => Δρ_c)
+end
+function Δρ(data_files::Vector{String}, ΔΘ_thres::Vector{Float64}, p_ref::Int64)
+
+    T_test = FieldTimeSeries(data_files[1], "T")
+    t = T_test.times ./ days
+    z = znodes(T_test)
+    all_levels = reverse(z)
+    num_steps = length(t)
+
+    Δρ_s = Array{Float64}(undef, num_steps, length(data_files))
+    Δρ_c = Array{Float64}(undef, num_steps, length(data_files))
+
+    for (i, file) ∈ enumerate(data_files)
+
+        println("$file")
+        T, S = FieldTimeSeries(file, "T"), FieldTimeSeries(file, "S")
+
+        #T and S time series for each initial condition
+        T_steps = [interior(T[time], 1, 1, :) for time ∈ 1:length(t)]
+        S_steps = [interior(S[time], 1, 1, :) for time ∈ 1:length(t)]
+
+        for step ∈ 1:num_steps
+
+            # The arrays for depth, pressure have been reversed as it is
+            # conceptually easier to work with so T and S have to be as well
+            T_profile = reverse(T_steps[step])
+            S_profile = reverse(S_steps[step])
+            temp_Δρ_s = []
+            temp_Δρ_c = []
+            for upper_level ∈ eachindex(all_levels[1:end-2])
+
+                Θᵤ = T_profile[upper_level]
+                Sᵤ = S_profile[upper_level]
+
+                for lower_level ∈ (upper_level + 1):length(all_levels)
+
+                    Θₗ = T_profile[lower_level]
+                    ΔΘ = Θᵤ - Θₗ
+                    if  ΔΘ_thres[1] ≤ abs(ΔΘ) < ΔΘ_thres[2]
                         Sₗ = S_profile[lower_level]
                         ΔS = Sᵤ - Sₗ
                         ρᵤ = gsw_rho(Sᵤ, Θᵤ, p_ref)
