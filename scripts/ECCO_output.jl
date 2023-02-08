@@ -25,8 +25,26 @@ mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
 series_max_Δρ(series, ΔΘ_thres, savepath)
 
-## 1.0 ≤ ΔΘ_thres < 2.5
-ΔΘ_thres = [1.0, 2.5]
+## ΔΘ_thres = 3.0
+ΔΘ_thres = 3.0
+mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+series_max_Δρ(series, ΔΘ_thres, savepath)
+
+## 0.5 ≤ ΔΘ_thres < 1.0
+ΔΘ_thres = [0.5, 1.0]
+mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+series_max_Δρ(series, ΔΘ_thres, savepath)
+
+## 1.0 ≤ ΔΘ_thres < 2.0
+ΔΘ_thres = [1.0, 2.0]
+mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+series_max_Δρ(series, ΔΘ_thres, savepath)
+
+## 2.0 ≤ ΔΘ_thres < 3.0
+ΔΘ_thres = [2.0, 3.0]
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
 series_max_Δρ(series, ΔΘ_thres, savepath)

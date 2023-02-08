@@ -2,8 +2,8 @@ using .VerticalProfileStability
 using Statistics
 
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
-ΔΘ_thres = [0.5, 1.0, 2.0, [1.0, 2.5]]
-select_ΔΘ = 4
+ΔΘ_thres = [0.5, 1.0, 2.0]
+select_ΔΘ = 3
 output_path = joinpath(@__DIR__, "output_$(ΔΘ_thres[select_ΔΘ])")
 output_files = glob("*.nc", output_path)
 output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
@@ -52,7 +52,7 @@ for (i, Δρ_) ∈ enumerate(Δρ)
     end
 end
 #fig
-save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_$(ΔΘ_thres[select_ΔΘ])_zoom.png"), fig)
+#save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_$(ΔΘ_thres[select_ΔΘ])_zoom.png"), fig)
 
 ## Restrict to temperature inversion
 Θᵤ = series2vec(output_series, :Θᵤ)
@@ -90,10 +90,6 @@ for (i, Δρ_) ∈ enumerate(Δρ_inversion)
 end
 #fig
 
-## Theoretical curve
-Sₗ_mean = mean(series2vec(output_series, :Sₗ))
-pₗ_mean = mean(series2vec(output_series, :pₗ))
-
 # Loook at temperature values
 ΔΘ_vals = series2vec(output_series, :ΔΘ)
 minimum(ΔΘ_vals), maximum(ΔΘ_vals)
@@ -102,16 +98,27 @@ minimum(ΔΘ_vals), maximum(ΔΘ_vals)
 ΔΘ_inversion_mean = mean(ΔΘ_vals[find_inversion])
 abs(Θᵤ_inversion_mean - Θₗ_inversion_mean)
 
+## Theoretical Δρ thresholds
+Sₗ_mean = 35
+pₗ_mean = 400
+Sₗ_mean = mean(series2vec(output_series, :Sₗ))
+pₗ_mean = mean(series2vec(output_series, :pₗ))
+
 Θ_lower_range = range(-1.85, 10; length = 100)
 Sₗ_mean_vec = fill(Sₗ_mean, 100)
 pₗ_mean_vec = fill(pₗ_mean, 100)
 α_vec = gsw_alpha.(Sₗ_mean_vec, Θ_lower_range , pₗ_mean_vec)
 β_vec = gsw_beta.(Sₗ_mean_vec, Θ_lower_range , pₗ_mean_vec)
 slope = α_vec ./ β_vec
-Δρ_thres_u =  gsw_rho.(Sₗ_mean_vec .- slope, Θ_lower_range .- 1, pₗ_mean_vec) -
+Δρ_thres_u =  gsw_rho.(Sₗ_mean_vec .- slope .* 2, Θ_lower_range .- 2, pₗ_mean_vec) -
               gsw_rho.(Sₗ_mean_vec, Θ_lower_range, pₗ_mean_vec)
-Δρ_thres_l =  gsw_rho.(Sₗ_mean_vec .- slope .* 2, Θ_lower_range .- 2, pₗ_mean_vec) -
+Δρ_thres_l =  gsw_rho.(Sₗ_mean_vec .- slope .* 2.5, Θ_lower_range .- 2.5, pₗ_mean_vec) -
               gsw_rho.(Sₗ_mean_vec, Θ_lower_range, pₗ_mean_vec)
 lines!(ax[1], Θ_lower_range, Δρ_thres_u; color = :red)
 lines!(ax[1], Θ_lower_range, Δρ_thres_l; color = :red)
 fig
+
+Δρ_thres_u =  gsw_rho.(Sₗ_mean_vec .+ slope, Θ_lower_range .+ 1, pₗ_mean_vec) -
+              gsw_rho.(Sₗ_mean_vec, Θ_lower_range, pₗ_mean_vec)
+Δρ_thres_l =  gsw_rho.(Sₗ_mean_vec .+ slope .* 2.5, Θ_lower_range .+ 2.5, pₗ_mean_vec) -
+              gsw_rho.(Sₗ_mean_vec, Θ_lower_range, pₗ_mean_vec)
