@@ -27,6 +27,6 @@ series_max_Δρ(series, ΔΘ_thres, savepath)
 
 ## 1.0 ≤ ΔΘ_thres < 2.5
 ΔΘ_thres = [1.0, 2.5]
-mkdir(joinpath(ECCO_data_analysis, "output_$(ΔΘ_thres[1])lower_$(ΔΘ_thres[2])upper"))
-savepath = joinpath(ECCO_data_analysis, "output_$(ΔΘ_thres[1])lower_$(ΔΘ_thres[2])upper")
+mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
 series_max_Δρ(series, ΔΘ_thres, savepath)
