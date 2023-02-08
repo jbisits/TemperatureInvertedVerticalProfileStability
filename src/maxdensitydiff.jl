@@ -37,11 +37,12 @@ function Δρ_static(Sₐ::Vector, Θ::Vector, p::Vector)
 end
 
 """
-    function profiles_Δρ_max(Sₐ::Vector, Θ::Vector, p::Vector, ΔΘ_thres::Float64))
+    function profiles_Δρ_max(Sₐ::Vector, Θ::Vector, p::Vector,
+                             ΔΘ_thres::Union{Float64, Vector{Float64}})
 Compute the maximum cabbeling density difference between all pairs of vertical levels from
 a profile. The density differences are computed using `Δρ_cab` and `Δρ_static`.
 """
-function Δρ_max(Sₐ::Vector, Θ::Vector, p::Vector, ΔΘ_thres::Float64)
+function Δρ_max(Sₐ::Vector, Θ::Vector, p::Vector, ΔΘ_thres::Union{Float64, Vector{Float64}})
 
     first_above_ΔΘ_thres = first_ΔΘ_thres(Θ, ΔΘ_thres)
     Δρᶜ_max, Δρˢ_max, upper_level, lower_level = missing, missing, missing, missing
@@ -85,11 +86,13 @@ function Δρ_max(Sₐ::Vector, Θ::Vector, p::Vector, ΔΘ_thres::Float64)
 end
 
 """
-    function profiles_Δρ_max(stack::RasterStack, zdepth::Float64, ΔΘ_thres::Float64)
+    function profiles_Δρ_max(stack::RasterStack, zdepth::Float64
+                             ΔΘ_thres::Union{Float64, Vector{Float64}})
 Compute the static and cabbeling density difference from data that is saved as a
 `RasterStack`. This is used to compute the density difference for data from ECCO.
 """
-function profiles_Δρ_max(stack::RasterStack, zdepth::Float64, ΔΘ_thres::Float64)
+function profiles_Δρ_max(stack::RasterStack, zdepth::Float64,
+                         ΔΘ_thres::Union{Float64, Vector{Float64}})
 
     # Get the `Raster`s and dimensions
     Sₐ, Θ, p = stack[:Sₐ], stack[:Θ], stack[:p]
@@ -131,17 +134,21 @@ function profiles_Δρ_max(stack::RasterStack, zdepth::Float64, ΔΘ_thres::Floa
 end
 
 """
-    function series_max_Δρ(raster_series::RasterSeries; zdepth = -1000.0)
-    function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64,
+    function series_max_Δρ(raster_series::RasterSeries,
+                           ΔΘ_thres::Union{Float64, Vector{Float64}};
+                           zdepth = -1000.0)
+    function series_max_Δρ(raster_series::RasterSeries,
+                           ΔΘ_thres::Union{Float64, Vector{Float64}},
                            savepath::AbstractString; zdepth = -1000.0, filetype = ".nc")
 Compute the static and cabbeling density difference from data that is saved as a
 `RasterSeries`. Adding the argument `savepath` will save each `RasterStack` from the input
 `raster_series` as a separate file. By default filetype is `.nc` though `.jld2` should also
 work, just require a different workflow to open and look at etc.
 """
-function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64; zdepth = -1000.0)
+function series_max_Δρ(raster_series::RasterSeries,
+                       ΔΘ_thres::Union{Float64, Vector{Float64}}; zdepth = -1000.0)
 
-    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ, :pᵤ, :pₗ, :Δp]
+    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ, :Sₗ, :pᵤ, :pₗ, :Δp]
     var_mats = Array{Array}(undef, length(var_names))
     x, y, time = dims(raster_series[Ti(1)], X), dims(raster_series[Ti(1)], Y),
                  dims(raster_series[Ti(1)], Ti)
@@ -160,9 +167,10 @@ function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64; zdept
         var_mats[4] = Θ_lower(converted_stack[:Θ], profile_max_res.lower_level_idx)
         var_mats[5] = ΔΘ(converted_stack[:Θ], profile_max_res.upper_level_idx,
                                               profile_max_res.lower_level_idx)
-        var_mats[6] = p_upper(converted_stack[:p], profile_max_res.upper_level_idx)
-        var_mats[7] = p_lower(converted_stack[:p], profile_max_res.lower_level_idx)
-        var_mats[8] = Δp(converted_stack[:p], profile_max_res.upper_level_idx,
+        var_mats[6] = S_lower(converted_stack[:Sₐ], profile_max_res.lower_level_idx)
+        var_mats[7] = p_upper(converted_stack[:p], profile_max_res.upper_level_idx)
+        var_mats[8] = p_lower(converted_stack[:p], profile_max_res.lower_level_idx)
+        var_mats[9] = Δp(converted_stack[:p], profile_max_res.upper_level_idx,
                                               profile_max_res.lower_level_idx)
         rs = [Raster(var_mats[j], (x, y, time); name = var_names[j])
                 for j ∈ eachindex(var_mats)]
@@ -173,10 +181,11 @@ function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64; zdept
     return RasterSeries(dd_rs_stacks, timestamps)
 
 end
-function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64,
+function series_max_Δρ(raster_series::RasterSeries,
+                       ΔΘ_thres::Union{Float64, Vector{Float64}},
                        savepath::AbstractString; zdepth = -1000.0, filetype = ".nc")
 
-    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ, :pᵤ, :pₗ, :Δp]
+    var_names = [:Δρ_cab, :Δρ_static, :Θᵤ, :Θₗ, :ΔΘ, :Sₗ, :pᵤ, :pₗ, :Δp]
     var_mats = Array{Array}(undef, length(var_names))
     x, y, time = dims(raster_series[Ti(1)], X), dims(raster_series[Ti(1)], Y),
                  dims(raster_series[Ti(1)], Ti)
@@ -194,9 +203,10 @@ function series_max_Δρ(raster_series::RasterSeries, ΔΘ_thres::Float64,
         var_mats[4] = Θ_lower(converted_stack[:Θ], profile_max_res.lower_level_idx)
         var_mats[5] = ΔΘ(converted_stack[:Θ], profile_max_res.upper_level_idx,
                                               profile_max_res.lower_level_idx)
-        var_mats[6] = p_upper(converted_stack[:p], profile_max_res.upper_level_idx)
-        var_mats[7] = p_lower(converted_stack[:p], profile_max_res.lower_level_idx)
-        var_mats[8] = Δp(converted_stack[:p], profile_max_res.upper_level_idx,
+        var_mats[6] = S_lower(converted_stack[:Sₐ], profile_max_res.lower_level_idx)
+        var_mats[7] = p_upper(converted_stack[:p], profile_max_res.upper_level_idx)
+        var_mats[8] = p_lower(converted_stack[:p], profile_max_res.lower_level_idx)
+        var_mats[9] = Δp(converted_stack[:p], profile_max_res.upper_level_idx,
                                               profile_max_res.lower_level_idx)
         rs = [Raster(var_mats[j], (x, y, time); name = var_names[j])
                 for j ∈ eachindex(var_mats)]
@@ -211,6 +221,7 @@ end
 
 """
     function first_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Float64)
+    function first_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Vector{Float64})
 Find the first pair of vertically separated levels of a water column that have an absolute
 temperature difference greater than `ΔΘ_thres`.
 """
@@ -233,9 +244,28 @@ function first_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Float64)
     return first_ΔΘ
 
 end
+function first_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Vector{Float64})
 
+    upper_level = 1
+    find_ΔΘ = findfirst(ΔΘ_thres[1] .< abs.(Θ[upper_level] .- Θ) .< ΔΘ_thres[2])
+
+    upper_level += 1
+    while isnothing(find_ΔΘ) && upper_level < length(Θ)
+
+        find_ΔΘ = findfirst(ΔΘ_thres[1] .< abs.(Θ[upper_level] .- Θ) .< ΔΘ_thres[2])
+        upper_level += 1
+
+    end
+
+    upper_level -= 1
+    first_ΔΘ = isnothing(find_ΔΘ) ? missing : [upper_level, find_ΔΘ]
+
+    return first_ΔΘ
+
+end
 """
     function check_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Float64)
+    function check_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Vector{Float64})
 Check that two vertically spaced levels have an absolute temperature difference greater than
 `ΔΘ_thres`.
 """
@@ -244,6 +274,19 @@ function check_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Float64)
     above_thres = false
 
     if abs(Θ[1] - Θ[2]) > ΔΘ_thres
+
+        above_thres = true
+
+    end
+
+    return above_thres
+
+end
+function check_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Vector{Float64})
+
+    above_thres = false
+
+    if ΔΘ_thres[1] ≤ abs(Θ[1] - Θ[2]) < ΔΘ_thres[2]
 
         above_thres = true
 
@@ -306,6 +349,27 @@ function ΔΘ(Θ::Raster, upper_idx::Array, lower_idx::Array)
     return ΔΘ_mat
 
 end
+
+"""
+    function S_lower(Sₐ::Raster, lower_idx::Array)
+Find salinity of lower water mass used for the maximum density difference calculation.
+"""
+function S_lower(Sₐ::Raster, lower_idx::Array)
+
+    lons, lats = dims(Sₐ, X), dims(Sₐ, Y)
+    Sₗ_mat = similar(Array(Sₐ[Z(1)]))
+    for i ∈ eachindex(lons), j ∈ eachindex(lats)
+
+        idx = lower_idx[i, j, 1]
+        if !ismissing(idx)
+            Sₗ_mat[i, j, 1] = Sₐ[i, j, idx, 1]
+        end
+
+    end
+
+    return Sₗ_mat
+end
+
 """
     function p_lower(p::Raster, lower_idx::Array)
 Find pressure of lower water mass used for the maximum density difference calculation.
