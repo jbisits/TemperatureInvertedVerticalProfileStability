@@ -1,11 +1,45 @@
 using .VerticalProfileStability
-using JLD2
-
+using JLD2, Statistics
 
 extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
 
+## Plot, individual plots as full plot took over an hour before I gave up waiting
+for (i, key) ∈ enumerate(keys(extracted_data))
+
+    @info "Generating plot for $(key)"
+    fig = Figure(size = (600, 600))
+    ax = Axis(fig[1, 1];
+            xlabel = "Θ (ᵒC)",
+            xaxisposition = :top,
+            title = "Maximum density difference between two vertically spaced\nlevels of a profile against temperature of lower level",
+            ylabel = "Δρ (kgm⁻³)",
+            subtitle = key*"ᵒC")
+    xlims!(ax, -1.88, 10)
+    ylims!(ax, -0.1, 0.01)
+
+    Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
+    lats = extracted_data[key]["lats"]
+    Δρ_thres = extracted_data[key]["Δρ_thres"]
+    ΔΘ_range = extracted_data[key]["ΔΘ_range"]
+    Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+
+    sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
+    lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
+           label = "Density difference threshold for ΔΘ = $(ΔΘ_range)(ᵒC)")
+
+    Colorbar(fig[2, 1], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)
+
+    axislegend(ax; position = :rb)
+
+    @info "Saving file"
+    save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_$(ΔΘ_range).png"), fig)
+end
+
+
+## Full plot
+
 ## Setup axis
-fig = Figure(size = (600, 1800))
+fig = Figure(size = (600, 1400))
 ax = [Axis(fig[i, 1];
           xlabel = "Θ (ᵒC)",
           xaxisposition = :top,
@@ -25,10 +59,15 @@ fig
 ## Plot
 for (i, key) ∈ enumerate(keys(extracted_data))
 
-    sc = scatter!(ax[i], extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"];
-                  color = extracted_data[key]["lats"],)
-    lines!(ax[i], extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]; color = :red,
-           label = "Density difference threshold for ΔΘ = $(extracted_data[key]["ΔΘ_range"])(ᵒC)")
+    Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
+    lats = extracted_data[key]["lats"]
+    Δρ_thres = extracted_data[key]["Δρ_thres"]
+    ΔΘ_range = extracted_data[key]["ΔΘ_range"]
+    Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+
+    sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
+    lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
+           label = "Density difference threshold for ΔΘ = $(ΔΘ_range)(ᵒC)")
 
     if i == length(keys(extracted_data))
         Colorbar(fig[1, 4], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)

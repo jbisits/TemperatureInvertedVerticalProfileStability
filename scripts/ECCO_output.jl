@@ -54,6 +54,7 @@ timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0]]
 extracted_data = joinpath(ECCO_data_analysis, "ECCO_extracted_data.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
+    # Data
     output_path = joinpath(ECCO_data_analysis, "output_$(select_ΔΘ)")
     output_files = glob("*.nc", output_path)
     output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
@@ -63,15 +64,18 @@ for select_ΔΘ ∈ ΔΘ_thres
     # Upper level Θ
     Θᵤ = series2vec(output_series, :Θᵤ)
     find_inversion = findall(Θᵤ .< Θₗ)
+
     # Extract all variables needed where there is a temperature inverison
     Θₗ = Θₗ[find_inversion]
     Θᵤ = Θᵤ[find_inversion]
     Sₗ = series2vec(output_series, :Sₗ)[find_inversion]
     pₗ = series2vec(output_series, :pₗ)[find_inversion]
     lats = get_lats(output_series, :Θₗ)[find_inversion]
+
     # Temperature and pressure differences
     ΔΘ_vals = series2vec(output_series, :ΔΘ)[find_inversion]
     Δp_vals = series2vec(output_series, :Δp)[find_inversion]
+
     # Density differneces
     Δρˢ = series2vec(output_series, :Δρ_static)[find_inversion]
     Δρᶜ = series2vec(output_series, :Δρ_cab)[find_inversion]
@@ -79,7 +83,6 @@ for select_ΔΘ ∈ ΔΘ_thres
     # Density difference threshold
     Sₗ_mean = mean(Sₗ)
     pₗ_mean = mean(pₗ)
-
     Θ_lower_range = range(-1.85, 10; length = 100)
     Sₗ_mean_vec = fill(Sₗ_mean, 100)
     pₗ_mean_vec = fill(pₗ_mean, 100)
