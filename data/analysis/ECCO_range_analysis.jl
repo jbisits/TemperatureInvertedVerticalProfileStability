@@ -4,7 +4,7 @@ using Statistics
 ## Read in the data and extract vectors
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0]]
-select_ΔΘ = 1
+select_ΔΘ = 3
 output_path = joinpath(@__DIR__, "output_$(ΔΘ_thres[select_ΔΘ])")
 output_files = glob("*.nc", output_path)
 output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
@@ -25,6 +25,7 @@ lats = get_lats(output_series, :Θₗ)
 ## Look at temperature inverted profiles and values
 ΔΘ_vals = series2vec(output_series, :ΔΘ)
 (minimum(ΔΘ_vals), maximum(ΔΘ_vals))
+findall(-ΔΘ_thres[select_ΔΘ][2] .< ΔΘ_vals[find_inversion] .<= -ΔΘ_thres[select_ΔΘ][1])
 Θₗ_inversion_mean = mean(Θₗ_inversion)
 Θᵤ_inversion_mean = mean(Θᵤ[find_inversion])
 ΔΘ_inversion_mean = mean(ΔΘ_vals[find_inversion])
