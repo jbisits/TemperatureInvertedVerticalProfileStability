@@ -35,7 +35,31 @@ for (i, key) ∈ enumerate(keys(extracted_data))
     save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_$(ΔΘ_range).png"), fig)
 end
 
+## Same axis, thresholds in different colours
+fig = Figure(size = (600, 600))
+ax = Axis(fig[1, 1];
+        xlabel = "Θ (ᵒC)",
+        xaxisposition = :top,
+        title = "Maximum density difference between two vertically spaced\nlevels of a profile against temperature of lower level",
+        ylabel = "Δρ (kgm⁻³)")
+xlims!(ax, -1.88, 10)
+ylims!(ax, -0.1, 0.01)
+colors = [:blue, :orange, :red]
+for (i, key) ∈ enumerate(keys(extracted_data))
 
+    Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
+    lats = extracted_data[key]["lats"]
+    Δρ_thres = extracted_data[key]["Δρ_thres"]
+    ΔΘ_range = extracted_data[key]["ΔΘ_range"]
+    Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+
+    sc = scatter!(ax, Θₗ, Δρˢ; color = colors[i], markersize = 4)
+    lines!(ax, Θ_lower_range, Δρ_thres; color = colors[i],
+           label = "Density difference threshold for ΔΘ = $(ΔΘ_range[1])ᵒC")
+
+end
+axislegend(ax; position = :rb)
+save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_all.png"), fig)
 ## Full plot
 
 ## Setup axis
