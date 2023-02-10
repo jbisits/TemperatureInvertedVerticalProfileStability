@@ -3,6 +3,8 @@ using JLD2, Statistics
 
 extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
 
+## Plots
+
 ## Plot, individual plots as full plot took over an hour before I gave up waiting
 for (i, key) ∈ enumerate(keys(extracted_data))
 
@@ -104,3 +106,28 @@ end
 save(joinpath(plotdir, "ECCO", "2007_mult_ΔΘ_thres.png"), fig)
 ## Close data file
 close(extracted_data)
+
+## Statistics
+extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
+data_keys = keys(extracted_data)
+
+## ΔΘ = 2 threshold
+
+Θₗ = collect(skipmissing(extracted_data[data_keys[3]]["Θₗ"]))
+Δρˢ = collect(skipmissing(extracted_data[data_keys[3]]["Δρˢ"]))
+lats = extracted_data[data_keys[3]]["lats"]
+Δρ_thres = extracted_data[data_keys[3]]["Δρ_thres"]
+Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+close(extracted_data)
+
+## Loess, dont think this is that useful
+find_ = findall(Θₗ .< 10 .&& Δρˢ .> -0.04)
+perm = sortperm(Θₗ[find_])
+xs = Float64.(Θₗ[find_][perm])
+ys = Float64.(Δρˢ[find_][perm])
+using Loess
+
+model = loess(xs, ys; span = 0.25)
+us = range(extrema(xs)...; length = 200)
+vs = predict(model, us)
+lines(us, vs)
