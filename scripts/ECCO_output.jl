@@ -70,6 +70,8 @@ for select_ΔΘ ∈ ΔΘ_thres
     Θᵤ = Θᵤ[find_inversion]
     Sₗ = series2vec(output_series, :Sₗ)[find_inversion]
     pₗ = series2vec(output_series, :pₗ)[find_inversion]
+    pᵤ = series2vec(output_series, :pᵤ)[find_inversion]
+    p̄ = @. 0.5 * (pᵤ + pₗ)
     lats = get_lats(output_series, :Θₗ)[find_inversion]
 
     # Temperature and pressure differences
@@ -82,21 +84,23 @@ for select_ΔΘ ∈ ΔΘ_thres
 
     # Density difference threshold
     Sₗ_mean = mean(Sₗ)
-    pₗ_mean = mean(pₗ)
+    p̄_mean = mean(p̄)
     Θ_lower_range = range(-1.85, 10; length = 100)
     Sₗ_mean_vec = fill(Sₗ_mean, 100)
-    pₗ_mean_vec = fill(pₗ_mean, 100)
-    α_vec = gsw_alpha.(Sₗ_mean_vec, Θ_lower_range , pₗ_mean_vec)
-    β_vec = gsw_beta.(Sₗ_mean_vec, Θ_lower_range , pₗ_mean_vec)
+    p̄_mean_vec = fill(p̄_mean, 100)
+    α_vec = gsw_alpha.(Sₗ_mean_vec, Θ_lower_range , p̄_mean_vec)
+    β_vec = gsw_beta.(Sₗ_mean_vec, Θ_lower_range , p̄_mean_vec)
     slope = α_vec ./ β_vec
     Δρ_thres =  gsw_rho.(Sₗ_mean_vec .- slope .* select_ΔΘ[1],
-                        Θ_lower_range .- select_ΔΘ[1], pₗ_mean_vec) -
-                gsw_rho.(Sₗ_mean_vec, Θ_lower_range, pₗ_mean_vec)
+                         Θ_lower_range .- select_ΔΘ[1], p̄_mean_vec) -
+                gsw_rho.(Sₗ_mean_vec, Θ_lower_range, p̄_mean_vec)
 
+    @info "Saving $(select_ΔΘ)"
     jldopen(extracted_data, "a+") do file
 
         file["ΔΘ_thres_$(select_ΔΘ)"] = Dict("Θₗ" => Θₗ, "Δρˢ" => Δρˢ, "Δρᶜ" => Δρᶜ,
                                              "Δρ_thres" => Δρ_thres, "lats" => lats,
+                                             "Θ_lower_range" => Θ_lower_range,
                                              "ΔΘ_range" => select_ΔΘ, "ΔΘ_vals" => ΔΘ_vals,
                                              "Δp_vals" => Δp_vals)
 

@@ -4,7 +4,9 @@ using JLD2, Statistics
 extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
 
 ## Plots
-
+# set ylimits, much faster to extract then plot data then plot and use lims! on axis.
+xlimits = (-1.88, 10)
+ylimits = (-0.1, 0.01)
 ## Plot, individual plots as full plot took over an hour before I gave up waiting
 for (i, key) ∈ enumerate(keys(extracted_data))
 
@@ -16,14 +18,16 @@ for (i, key) ∈ enumerate(keys(extracted_data))
             title = "Maximum density difference between two vertically spaced\nlevels of a profile against temperature of lower level",
             ylabel = "Δρ (kgm⁻³)",
             subtitle = key*"ᵒC")
-    xlims!(ax, -1.88, 10)
-    ylims!(ax, -0.1, 0.01)
+    xlims!(ax, xlimits)
+    ylims!(ax, ylimits)
 
     Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
-    lats = extracted_data[key]["lats"]
+    find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
+    Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
+    lats = extracted_data[key]["lats"][find]
     Δρ_thres = extracted_data[key]["Δρ_thres"]
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
-    Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+    Θ_lower_range = extracted_data[key]["Θ_lower_range"]
 
     sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
     lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
@@ -44,16 +48,18 @@ ax = Axis(fig[1, 1];
         xaxisposition = :top,
         title = "Maximum density difference between two vertically spaced\nlevels of a profile against temperature of lower level",
         ylabel = "Δρ (kgm⁻³)")
-xlims!(ax, -1.88, 10)
-ylims!(ax, -0.1, 0.01)
+xlims!(ax, xlimits)
+ylims!(ax, ylimits)
 colors = [:blue, :orange, :red]
 for (i, key) ∈ enumerate(keys(extracted_data))
 
     Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
-    lats = extracted_data[key]["lats"]
+    find = findall(xlimits[1] .≤ Θₗ .≤ xlmits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
+    Θₗ, Δρˢ = Θ[find], Δρˢ[find]
+    lats = extracted_data[key]["lats"][find]
     Δρ_thres = extracted_data[key]["Δρ_thres"]
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
-    Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+    Θ_lower_range = extracted_data[key]["Θ_lower_range"]
 
     sc = scatter!(ax, Θₗ, Δρˢ; color = colors[i], markersize = 4)
     lines!(ax, Θ_lower_range, Δρ_thres; color = colors[i],
@@ -77,8 +83,8 @@ linkxaxes!(ax...)
 hidexdecorations!(ax[2], grid = false)
 hidexdecorations!(ax[3], grid = false)
 for i ∈ eachindex(keys(extracted_data))
-    xlims!(ax[i], -1.88, 10)
-    ylims!(ax[i], -0.1, 0.01)
+    xlims!(ax[i], xlimits)
+    ylims!(ax[i], ylimits)
 end
 fig
 
@@ -86,10 +92,12 @@ fig
 for (i, key) ∈ enumerate(keys(extracted_data))
 
     Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
-    lats = extracted_data[key]["lats"]
+    find = findall(xlimits[1] .≤ Θₗ .≤ xlmits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
+    Θₗ, Δρˢ = Θ[find], Δρˢ[find]
+    lats = extracted_data[key]["lats"][find]
     Δρ_thres = extracted_data[key]["Δρ_thres"]
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
-    Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+    Θ_lower_range = extracted_data[key]["Θ_lower_range"]
 
     sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
     lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
