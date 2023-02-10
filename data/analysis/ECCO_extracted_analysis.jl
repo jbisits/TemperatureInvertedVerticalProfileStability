@@ -31,7 +31,7 @@ for (i, key) ∈ enumerate(keys(extracted_data))
 
     sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
     lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
-           label = "Density difference threshold for ΔΘ = $(ΔΘ_range)(ᵒC)")
+           label = "Density difference threshold for ΔΘ = $(ΔΘ_range[1])(ᵒC)")
 
     Colorbar(fig[2, 1], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)
 
@@ -54,8 +54,8 @@ colors = [:blue, :orange, :red]
 for (i, key) ∈ enumerate(keys(extracted_data))
 
     Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
-    find = findall(xlimits[1] .≤ Θₗ .≤ xlmits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
-    Θₗ, Δρˢ = Θ[find], Δρˢ[find]
+    find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
+    Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
     lats = extracted_data[key]["lats"][find]
     Δρ_thres = extracted_data[key]["Δρ_thres"]
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
@@ -92,19 +92,19 @@ fig
 for (i, key) ∈ enumerate(keys(extracted_data))
 
     Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
-    find = findall(xlimits[1] .≤ Θₗ .≤ xlmits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
-    Θₗ, Δρˢ = Θ[find], Δρˢ[find]
+    find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
+    Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
     lats = extracted_data[key]["lats"][find]
     Δρ_thres = extracted_data[key]["Δρ_thres"]
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
     Θ_lower_range = extracted_data[key]["Θ_lower_range"]
 
-    sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
-    lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
+    sc = scatter!(ax[i], Θₗ, Δρˢ; color = lats, markersize = 4)
+    lines!(ax[i], Θ_lower_range, Δρ_thres; color = :red,
            label = "Density difference threshold for ΔΘ = $(ΔΘ_range)(ᵒC)")
 
     if i == length(keys(extracted_data))
-        Colorbar(fig[1, 4], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)
+        Colorbar(fig[4, 1], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)
     end
 
     axislegend(ax[i]; position = :rb)
