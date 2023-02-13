@@ -66,8 +66,9 @@ for (i, key) ∈ enumerate(keys(extracted_data))
            label = "Density difference threshold for ΔΘ = $(ΔΘ_range[1])ᵒC")
 
 end
+vlines!(ax, Θ_lower_range; label = "Histogram bins", linestyle = :dash, color = :black)
 axislegend(ax; position = :rb)
-save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_all.png"), fig)
+save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_all_withbins.png"), fig)
 ## Full plot
 
 ## Setup axis
@@ -116,6 +117,7 @@ save(joinpath(plotdir, "ECCO", "2007_mult_ΔΘ_thres.png"), fig)
 close(extracted_data)
 
 ## Statistics
+
 extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
 data_keys = keys(extracted_data)
 
@@ -125,17 +127,51 @@ data_keys = keys(extracted_data)
 Δρˢ = collect(skipmissing(extracted_data[data_keys[3]]["Δρˢ"]))
 lats = extracted_data[data_keys[3]]["lats"]
 Δρ_thres = extracted_data[data_keys[3]]["Δρ_thres"]
-Θ_lower_range = range(-1.85, 10; length = 100) # forgot to save this
+Θ_lower_range = extracted_data[data_keys[3]]["Θ_lower_range"]
 close(extracted_data)
 
-## Loess, dont think this is that useful
-find_ = findall(Θₗ .< 10 .&& Δρˢ .> -0.04)
-perm = sortperm(Θₗ[find_])
-xs = Float64.(Θₗ[find_][perm])
-ys = Float64.(Δρˢ[find_][perm])
-using Loess
+## Find proportion above theoretical threshold
+find_ = findall(Θₗ .≤ 10)
+Θₗ_data = Θₗ[find_]
+Δρˢ_data = Δρˢ[find_]
+hist(Θₗ_data; bins = Θ_lower_range)
 
-model = loess(xs, ys; span = 0.25)
-us = range(extrema(xs)...; length = 200)
-vs = predict(model, us)
-lines(us, vs)
+using StatsBase
+
+## Fit a `Histogram` then get the index of the elements in each bin. This will allow
+# comparison of `Δρ_thres` value calculated with all the static density differences for a
+# given lower layer temperature.
+
+Θₗ_histfit = fit(Histogram, Θₗ_data, Θ_lower_range)
+Θₗ_binidx = StatsBase.binindex.(Ref(Θₗ_histfit), Θₗ_data)
+unique_binidx = unique(Θₗ_binidx)
+Δρ_thres_binidx = Δρ_thres[unique_binidx]
+unstable_pts = Vector{Float64}(undef, length(unique_binidx))
+for (i, idx) ∈ enumerate(unique_binidx)
+
+    find = findall(idx .== Θₗ_binidx)
+    unstable_pts[i] = length(findall(Δρˢ_data[find] .> Δρ_thres_binidx[i]))
+
+end
+unstable_pts
+sum(unstable_pts)
+find_unstable_idx = findall(unstable_pts .> 0)
+unstable_Θₗ = Θ_lower_range[find_unstable_idx]
+sum(unstable_pts) / length(Δρˢ_data)
+
+Θ_lower_range[unique_binidx[68]]
+find = findall(unique_binidx[67] .== Θₗ_binidx)
+length(findall(Δρˢ_data[find] .> Δρ_thres[67]))
+
+
+## Loess, dont think this is that useful
+# find_ = findall(Θₗ .< 10 .&& Δρˢ .> -0.04)
+# perm = sortperm(Θₗ[find_])
+# xs = Float64.(Θₗ[find_][perm])
+# ys = Float64.(Δρˢ[find_][perm])
+# using Loess
+
+# model = loess(xs, ys; span = 0.25)
+# us = range(extrema(xs)...; length = 200)
+# vs = predict(model, us)
+# lines(us, vs)
