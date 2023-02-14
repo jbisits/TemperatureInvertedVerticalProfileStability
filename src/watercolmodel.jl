@@ -80,7 +80,7 @@ function run_model(;
     # Set the salinity initial conditions for increasing salinity in the mixed layer
     Sᵢ = reshape(S₀, :)
     S_ics = repeat(Sᵢ, inner = (1, 1), outer = (1, num_ics))
-    S_inc = range(Sᵤ, Sᵣ, length = num_ics)
+    S_inc = range(Sᵤ, Sᵣ; length = num_ics)
     S_ics[81:end, :] .= repeat(S_inc, inner = (1, 20), outer = (1, 1))'
 
     savefile = joinpath(savepath, "T_and_S")

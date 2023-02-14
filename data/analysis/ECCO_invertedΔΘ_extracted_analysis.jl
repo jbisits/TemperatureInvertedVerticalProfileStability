@@ -24,21 +24,24 @@ for (i, key) ∈ enumerate(keys(extracted_data))
     Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
     find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
-    lats = extracted_data[key]["lats"][find]
+    #lats = extracted_data[key]["lats"][find]
+    ΔΘ = round.(extracted_data[key]["ΔΘ_vals"][find]; digits = 1)
+    #Δp = round.(Int, extracted_data[key]["Δp_vals"][find])
     Δρ_thres = extracted_data[key]["Δρ_thres"]
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
     Θ_lower_range = extracted_data[key]["Θ_lower_range"]
 
-    sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
+    sc = scatter!(ax, Θₗ, Δρˢ; color = ΔΘ, markersize = 4, colormap = :thermal)
     lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
            label = "Density difference threshold for ΔΘ = $(ΔΘ_range[1])(ᵒC)")
 
-    Colorbar(fig[2, 1], sc, label = "Latitude (ᵒN)", vertical = false, flipaxis = false)
+    Colorbar(fig[2, 1], sc, label = "Difference in pressure between levels",
+             vertical = false, flipaxis = false)
 
     axislegend(ax; position = :rb)
 
     @info "Saving file"
-    save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_$(ΔΘ_range).png"), fig)
+    save(joinpath(plotdir, "ECCO", "Θ_inversion", "2007_ΔΘ_thres_$(ΔΘ_range)_ΔΘ.png"), fig)
 end
 
 ## Same axis, thresholds in different colours
@@ -66,9 +69,9 @@ for (i, key) ∈ enumerate(keys(extracted_data))
            label = "Density difference threshold for ΔΘ = $(ΔΘ_range[1])ᵒC")
 
 end
-vlines!(ax, Θ_lower_range; label = "Histogram bins", linestyle = :dash, color = :black)
+#vlines!(ax, Θ_lower_range; label = "Histogram bins", linestyle = :dash, color = :black)
 axislegend(ax; position = :rb)
-save(joinpath(plotdir, "ECCO", "2007_ΔΘ_thres_all_withbins.png"), fig)
+save(joinpath(plotdir, "ECCO", "Θ_inversion", "2007_ΔΘ_thres_all_withbins.png"), fig)
 ## Full plot
 
 ## Setup axis
@@ -112,29 +115,29 @@ for (i, key) ∈ enumerate(keys(extracted_data))
 end
 
 ## Save
-save(joinpath(plotdir, "ECCO", "2007_mult_ΔΘ_thres.png"), fig)
+save(joinpath(plotdir, "ECCO", "Θ_inversion", "2007_mult_ΔΘ_thres.png"), fig)
 ## Close data file
 close(extracted_data)
 
 ## Statistics
 
 extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
-data_keys = keys(extracted_data)
+ΔΘ_0_5, ΔΘ_1, ΔΘ_2 = keys(extracted_data)
 
 ## ΔΘ = 2 threshold
 
-Θₗ = collect(skipmissing(extracted_data[data_keys[3]]["Θₗ"]))
-Δρˢ = collect(skipmissing(extracted_data[data_keys[3]]["Δρˢ"]))
-lats = extracted_data[data_keys[3]]["lats"]
-Δρ_thres = extracted_data[data_keys[3]]["Δρ_thres"]
-Θ_lower_range = extracted_data[data_keys[3]]["Θ_lower_range"]
-close(extracted_data)
+Θₗ = collect(skipmissing(extracted_data[ΔΘ_1]["Θₗ"]))
+Δρˢ = collect(skipmissing(extracted_data[ΔΘ_1]["Δρˢ"]))
+lats = extracted_data[ΔΘ_1]["lats"]
+Δρ_thres = extracted_data[ΔΘ_1]["Δρ_thres"]
+Θ_lower_range = extracted_data[ΔΘ_1]["Θ_lower_range"]
 
-## Find proportion above theoretical threshold
+## Histogram
 find_ = findall(Θₗ .≤ 10)
 Θₗ_data = Θₗ[find_]
 Δρˢ_data = Δρˢ[find_]
-hist(Θₗ_data; bins = Θ_lower_range)
+hist(Θₗ_data; bins = Θ_lower_range, normalization = :pdf)
+hist(Θₗ_data; bins = range(extrema(Θ_lower_range)...; step = 0.5))
 
 using StatsBase
 
@@ -159,19 +162,6 @@ find_unstable_idx = findall(unstable_pts .> 0)
 unstable_Θₗ = Θ_lower_range[find_unstable_idx]
 sum(unstable_pts) / length(Δρˢ_data)
 
-Θ_lower_range[unique_binidx[68]]
+Θ_lower_range[unique_binidx[67]]
 find = findall(unique_binidx[67] .== Θₗ_binidx)
 length(findall(Δρˢ_data[find] .> Δρ_thres[67]))
-
-
-## Loess, dont think this is that useful
-# find_ = findall(Θₗ .< 10 .&& Δρˢ .> -0.04)
-# perm = sortperm(Θₗ[find_])
-# xs = Float64.(Θₗ[find_][perm])
-# ys = Float64.(Δρˢ[find_][perm])
-# using Loess
-
-# model = loess(xs, ys; span = 0.25)
-# us = range(extrema(xs)...; length = 200)
-# vs = predict(model, us)
-# lines(us, vs)
