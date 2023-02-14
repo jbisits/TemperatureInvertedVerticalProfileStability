@@ -5,60 +5,62 @@ using .VerticalProfileStability
 
 ECCO_data = glob("*.nc", ECCO_datadir)
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
-series = RasterSeries(ECCO_data, Ti(timestamps); child = RasterStack)
+rs_series = RasterSeries(ECCO_data, Ti(timestamps); child = RasterStack)
 
 ## ΔΘ_thres = 0.5
 ΔΘ_thres = 0.5
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
+series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## ΔΘ_thres = 1.0
 ΔΘ_thres = 1.0
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
+series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## ΔΘ_thres = 2.0
 ΔΘ_thres = 2.0
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
+series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## ΔΘ_thres = 3.0
 ΔΘ_thres = 3.0
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
+series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## 0.5 ≤ ΔΘ_thres < 1.0
 ΔΘ_thres = [0.5, 1.0]
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
+series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## 1.0 ≤ ΔΘ_thres < 2.0
 ΔΘ_thres = [1.0, 2.0]
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
+series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## 2.0 ≤ ΔΘ_thres < 3.0
 ΔΘ_thres = [2.0, 3.0]
 mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
-series_max_Δρ(series, ΔΘ_thres, savepath)
+series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## Extract temperature inverted data from each data threshold and save to .jld2
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
-ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0]]
+ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
 extracted_data = joinpath(ECCO_data_analysis, "ECCO_invertedΔΘ_extracted_data.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
     # Data
+    @info "Reading RasterSeries"
     output_path = joinpath(ECCO_data_analysis, "output_$(select_ΔΘ)")
     output_files = glob("*.nc", output_path)
     output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
 
+    @info "Extacting temperature inverted data"
     # Lower level Θ
     Θₗ = series2vec(output_series, :Θₗ)
     # Upper level Θ
@@ -83,6 +85,7 @@ for select_ΔΘ ∈ ΔΘ_thres
     Δρᶜ = series2vec(output_series, :Δρ_cab)[find_inversion]
 
     # Density difference threshold
+    @info "Computing density difference threshold"
     Sₗ_mean = mean(Sₗ)
     p̄_mean = mean(p̄)
     Θ_lower_range = range(-1.85, 10; length = 100)
@@ -91,8 +94,8 @@ for select_ΔΘ ∈ ΔΘ_thres
     α_vec = gsw_alpha.(Sₗ_mean_vec, Θ_lower_range , p̄_mean_vec)
     β_vec = gsw_beta.(Sₗ_mean_vec, Θ_lower_range , p̄_mean_vec)
     slope = α_vec ./ β_vec
-    Δρ_thres =  gsw_rho.(Sₗ_mean_vec .+ slope .* select_ΔΘ[1],
-                         Θ_lower_range .+ select_ΔΘ[1], p̄_mean_vec) -
+    ΔΘ = typeof(select_ΔΘ) == Vector{Float64} ? select_ΔΘ[1] : select_ΔΘ
+    Δρ_thres =  gsw_rho.(Sₗ_mean_vec .- slope .* ΔΘ, Θ_lower_range .- ΔΘ, p̄_mean_vec) -
                 gsw_rho.(Sₗ_mean_vec, Θ_lower_range, p̄_mean_vec)
 
     @info "Saving $(select_ΔΘ)"
@@ -114,10 +117,12 @@ timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 extracted_data = joinpath(ECCO_data_analysis, "ECCO_stratifiedΔΘ_extracted_data.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
     # Data
+    @info "Reading RasterSeries"
     output_path = joinpath(ECCO_data_analysis, "output_$(select_ΔΘ)")
     output_files = glob("*.nc", output_path)
     output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
 
+    @info "Extacting temperature stratified data"
     # Lower level Θ
     Θₗ = series2vec(output_series, :Θₗ)
     # Upper level Θ
@@ -142,6 +147,7 @@ for select_ΔΘ ∈ ΔΘ_thres
     Δρᶜ = series2vec(output_series, :Δρ_cab)[find_stratified]
 
     # Density difference threshold
+    @info "Computing density difference threshold"
     Sₗ_mean = mean(Sₗ)
     p̄_mean = mean(p̄)
     Θ_lower_range = range(-1.85, 10; length = 100)
@@ -150,8 +156,9 @@ for select_ΔΘ ∈ ΔΘ_thres
     α_vec = gsw_alpha.(Sₗ_mean_vec, Θ_lower_range , p̄_mean_vec)
     β_vec = gsw_beta.(Sₗ_mean_vec, Θ_lower_range , p̄_mean_vec)
     slope = α_vec ./ β_vec
-    Δρ_thres =  gsw_rho.(Sₗ_mean_vec .- slope .* select_ΔΘ[1],
-                         Θ_lower_range .- select_ΔΘ[1], p̄_mean_vec) -
+    ΔΘ = typeof(select_ΔΘ) == Vector{Float64} ? select_ΔΘ[1] : select_ΔΘ
+    Δρ_thres =  gsw_rho.(Sₗ_mean_vec .+ slope .* ΔΘ,
+                         Θ_lower_range .+ ΔΘ, p̄_mean_vec) -
                 gsw_rho.(Sₗ_mean_vec, Θ_lower_range, p̄_mean_vec)
 
     @info "Saving $(select_ΔΘ)"
