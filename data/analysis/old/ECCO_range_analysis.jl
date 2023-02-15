@@ -3,7 +3,7 @@ using Statistics
 
 ## Read in the data and extract vectors
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
-ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0]]
+ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
 select_ΔΘ = 3
 output_path = joinpath(@__DIR__, "output_$(ΔΘ_thres[select_ΔΘ])")
 output_files = glob("*.nc", output_path)

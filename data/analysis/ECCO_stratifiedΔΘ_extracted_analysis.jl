@@ -35,14 +35,17 @@ for (i, key) ∈ enumerate(keys(extracted_data))
 end
 #vlines!(ax, Θ_lower_range; label = "Histogram bins", linestyle = :dash, color = :black)
 #axislegend(ax; position = :rb)
-Legend(fig[1, 2], ax, "Δρ threshold for", orientation = :horizontal)
+Legend(fig[2, 1], ax, "Δρ threshold for", orientation = :horizontal)
 save(joinpath(plotdir, "ECCO", "Θ_stratified", "2007_ΔΘ_thres_all.png"), fig)
 
 ## Full plot
 keys_mat = reshape(keys(extracted_data), 2, 2)
-colourbar_vars = ["lats", "Δp_vals", "ΔΘ_vals"]
-colourbar_col = [:viridis, :batlow, :thermal]
-choose_var = 1
+colourbar_vars = ("lats", "Δp_vals", "ΔΘ_vals")
+colourbar_col = (:viridis, :batlow, :thermal)
+# These have been found by looking at the subset for each key in the dictionary and taking
+# the `extrema`. The code is not here though.
+colourbar_ranges = ((-90, 90), (30, 560), (0.5, 4))
+choose_var = 3
 ## Setup axis
 fig = Figure(size = (1400, 1400))
 ax = [Axis(fig[i, j];
@@ -55,8 +58,6 @@ for i ∈ 1:2
     linkxaxes!(ax[i, :]...)
     linkyaxes!(ax[:, i]...)
     hidexdecorations!(ax[2, i], grid = false)
-    hidexdecorations!(ax[2, i], grid = false)
-    hideydecorations!(ax[i, 2], grid = false)
     hideydecorations!(ax[i, 2], grid = false)
 end
 for i ∈ 1:2, j ∈ 1:2
@@ -83,26 +84,32 @@ for (i, key) ∈ enumerate(keys_mat)
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
     Θ_lower_range = extracted_data[key]["Θ_lower_range"]
 
-    sc = scatter!(ax[i], Θₗ, Δρˢ; color = plot_var, markersize = 4,
-                  colormap = colourbar_col[choose_var])
-    lines!(ax[i], Θ_lower_range, Δρ_thres; color = colors[i],
+    sc = scatter!(ax[i], Θₗ, Δρˢ;
+                  color = plot_var,
+                  markersize = 4,
+                  colormap = colourbar_col[choose_var],
+                  colorrange = colourbar_ranges[choose_var])
+    lines!(ax[i], Θ_lower_range, Δρ_thres;
+           color = colors[i],
            label = "ΔΘ = $(ΔΘ_range[1])ᵒC")
 
-    if i == 1
+    if i == 4
         Colorbar(fig[:, 3], sc, label = cbar_lab)
     end
 end
 lin_elements = [LineElement(color = col) for col ∈ colors]
 leg_labels = "ΔΘ = " .* string.([0.5, 1.0, 2.0, 3.0]) .* "°C"
-Colorbar(fig[:, 3], )
 Legend(fig[3, :], lin_elements, leg_labels, "Δρ threshold for", orientation = :horizontal)
-## Save
+# Save
 save(joinpath(plotdir, "ECCO", "Θ_stratified",
               "2007_mult_ΔΘ_thres_$(colourbar_vars[choose_var]).png"), fig)
 
+## Close data file
+close(extracted_data)
+
 ## Statistics
 
-extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
+extracted_data = jldopen(joinpath(@__DIR__, "ECCO_stratifiedΔΘ_extracted_data.jld2"))
 ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(extracted_data)
 
 ## ΔΘ = 2 threshold

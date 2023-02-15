@@ -43,7 +43,9 @@ save(joinpath(plotdir, "ECCO", "Θ_inversion", "2007_ΔΘ_thres_all.png"), fig)
 keys_mat = reshape(keys(extracted_data), 2, 2)
 colourbar_vars = ("lats", "Δp_vals", "ΔΘ_vals")
 colourbar_col = (:viridis, :batlow, :thermal)
-colourbar_ranges = ((-90, 90), (0, 1000), (-0.5, -6))
+# These have been found by looking at the subset for each key in the dictionary and taking
+# the `extrema`. The code is not here though.
+colourbar_ranges = ((-90, 90), (20, 410), (-3.5, -0.5))
 choose_var = 3
 ## Setup axis
 fig = Figure(size = (1400, 1400))
@@ -57,8 +59,6 @@ for i ∈ 1:2
     linkxaxes!(ax[i, :]...)
     linkyaxes!(ax[:, i]...)
     hidexdecorations!(ax[2, i], grid = false)
-    hidexdecorations!(ax[2, i], grid = false)
-    hideydecorations!(ax[i, 2], grid = false)
     hideydecorations!(ax[i, 2], grid = false)
 end
 for i ∈ 1:2, j ∈ 1:2
@@ -85,9 +85,13 @@ for (i, key) ∈ enumerate(keys_mat)
     ΔΘ_range = extracted_data[key]["ΔΘ_range"]
     Θ_lower_range = extracted_data[key]["Θ_lower_range"]
 
-    sc = scatter!(ax[i], Θₗ, Δρˢ; color = plot_var, markersize = 4,
-                  colormap = colourbar_col[choose_var])
-    lines!(ax[i], Θ_lower_range, Δρ_thres; color = colors[i],
+    sc = scatter!(ax[i], Θₗ, Δρˢ;
+                  markersize = 4,
+                  color = plot_var,
+                  colormap = colourbar_col[choose_var],
+                  colorrange = colourbar_ranges[choose_var])
+    lines!(ax[i], Θ_lower_range, Δρ_thres;
+           color = colors[i],
            label = "ΔΘ = $(ΔΘ_range[1])ᵒC")
 
     if i == 4
@@ -107,6 +111,7 @@ close(extracted_data)
 ## Statistics
 extracted_data = jldopen(joinpath(@__DIR__, "ECCO_extracted_data.jld2"))
 ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(extracted_data)
+
 ## ΔΘ = 2 threshold
 Θₗ = collect(skipmissing(extracted_data[ΔΘ_1]["Θₗ"]))
 Δρˢ = collect(skipmissing(extracted_data[ΔΘ_1]["Δρˢ"]))
