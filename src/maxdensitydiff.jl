@@ -503,7 +503,7 @@ function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vec
     Sₗ, Sᵤ = similar(Δρˢ), similar(Δρˢ)
     for i ∈ eachindex(Δρˢ)
 
-        if i % 100 == 0
+        if i % 1000 == 0
             @info "Profile $(i) of $(length(lat))"
         end
         Sₚ_vec, θ_vec, p_vec = vec(Sₚ[i]), vec(θ[i]), vec(p[i])
@@ -524,7 +524,7 @@ function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vec
     end
 
     return Dict("Δρˢ" => Δρˢ, "Δρᶜ" => Δρᶜ, "Θᵤ" => Θᵤ, "Θₗ" => Θₗ, "pᵤ" => pᵤ, "pₗ" => pₗ,
-                "Sᵤ" => Sᵤ, "Sₗ" => Sₗ)
+                "Sᵤ" => Sᵤ, "Sₗ" => Sₗ, "lats" => lat)
 
 end
 

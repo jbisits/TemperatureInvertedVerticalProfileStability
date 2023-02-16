@@ -1,5 +1,5 @@
 using .VerticalProfileStability
-using MAT
+using MAT, JLD2
 
 const ARGO_DATA = joinpath(@__DIR__, "..", "data", "observations", "ARGO_JJASO",
                            "Argo_JJASO.mat")
@@ -13,7 +13,7 @@ close(file)
 ## I have not looked at too many but there does seem to be a few that will suffice. Not
 #  sure what the variables are but likely potential temperature and practical salinity.
 
-lat = vars["lat"]
+lats = round.(vec(vars["lat"]); digits = 2)
 lon = vars["lon"]
 S = vars["sal"]
 T = vars["temp"]
@@ -22,7 +22,7 @@ p = vars["press"]
 profile = 4000
 lines(reshape(S[profile], :), reshape(T[profile], :))
 
-## I think I can write function that will then use `Δρ_max` in `maxdensitydiff.jl`.
+## Extract maximum density differences
 ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
 Argo_ouput = joinpath(@__DIR__, "..", "data", "analysis", "ARGO_extracted.jld2")
 for ΔΘ ∈ ΔΘ_thres
