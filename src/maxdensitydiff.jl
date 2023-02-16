@@ -2,9 +2,9 @@
 # vertical profile.
 module MaximumDensityDifference
 
-using Rasters, OceanRasterConversions, GibbsSeaWater
+using Rasters, OceanRasterConversions, GibbsSeaWater, MAT
 
-export series_max_Δρ, series2vec, get_lats
+export series_max_Δρ, series2vec, get_lats, argo_max_Δρ
 
 """
     function Δρ_cab(Sₐ::Vector, Θ::Vector, p::Vector)
@@ -477,6 +477,54 @@ function get_lats(series::RasterSeries, var::Symbol)
     end
 
     return vcat(lats_vec_nm...)
+
+end
+
+# ARGO data
+"""
+    function argo_max_Δρ(data_file::AbstractString,
+                         ΔΘ_thres::Union{Float64, Vector{Float64}})
+Calculate the maximum static density difference from the `Argo_JJASO.mat` data. The function
+takes in the data file, extracts the variables, converts to TEOS-10 standard then uses
+`Δρ_max` to find the maximum static and cabbeling density difference, and the indexes of the
+levels used to find these density differences.
+"""
+function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vector{Float64}})
+
+    vars = matread(data_file)
+    lat = vec(vars["lat"])
+    lon = vec(vars["lon"])
+    Sₚ = vars["sal"]
+    θ = vars["temp"]
+    p = vars["press"]
+    Δρˢ, Δρᶜ = similar(lat, Union{Float64, Missing}), similar(lat, Union{Float64, Missing})
+    Θₗ, Θᵤ = similar(Δρˢ), similar(Δρˢ)
+    pₗ, pᵤ = similar(Δρˢ), similar(Δρˢ)
+    Sₗ, Sᵤ = similar(Δρˢ), similar(Δρˢ)
+    for i ∈ eachindex(Δρˢ)
+
+        if i % 100 == 0
+            @info "Profile $(i) of $(length(lat))"
+        end
+        Sₚ_vec, θ_vec, p_vec = vec(Sₚ[i]), vec(θ[i]), vec(p[i])
+        Sₐ = gsw_sa_from_sp.(Sₚ_vec, p_vec, lon[i], lat[i])
+        Θ = gsw_ct_from_pt.(Sₐ, θ_vec)
+
+        Δρˢ[i], Δρᶜ[i], upper_level, lower_level = Δρ_max(Sₐ, Θ, p_vec, ΔΘ_thres)
+        if ismissing(upper_level)
+            Θᵤ[i], Θₗ[i] = upper_level, lower_level
+            pᵤ[i], pₗ[i] = upper_level, lower_level
+            Sᵤ[i], Sₗ[i] = upper_level, lower_level
+        else
+            Θᵤ[i], Θₗ[i] = Θ[upper_level], Θ[lower_level]
+            pᵤ[i], pₗ[i] = p_vec[upper_level], p_vec[lower_level]
+            Sᵤ[i], Sₗ[i] = Sₐ[upper_level], Sₐ[lower_level]
+        end
+
+    end
+
+    return Dict("Δρˢ" => Δρˢ, "Δρᶜ" => Δρᶜ, "Θᵤ" => Θᵤ, "Θₗ" => Θₗ, "pᵤ" => pᵤ, "pₗ" => pₗ,
+                "Sᵤ" => Sᵤ, "Sₗ" => Sₗ)
 
 end
 
