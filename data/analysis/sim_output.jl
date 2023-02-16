@@ -141,11 +141,6 @@ linkyaxes!(ax[1], ax[2])
 
 line_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics)))
 
-# p_ref = 0
-# αₗ, βₗ = gsw_alpha(Sₗ, Θₗ, p_ref), gsw_beta(Sₗ, Θₗ, p_ref)
-# Δρ_thres = (gsw_rho(Sₗ - (αₗ / βₗ) * ΔΘ_thres_val[ΔΘ_thres_idx],
-#                    Θₗ - ΔΘ_thres_val[ΔΘ_thres_idx], p_ref) -
-#            gsw_rho(Sₗ, Θₗ, p_ref)) .* ones(length(t))
 for i ∈ 1:num_ics
     lines!(ax[1], t, Δρ_s[:, i], color = line_colour[i])
     scatter!(ax[1], [t[1]], [Δρ_s[1, i]], color = line_colour[i],
@@ -162,4 +157,16 @@ densitydiff_TS[2, :] = Legend(densitydiff_TS, ax[1],
 densitydiff_TS
 #save(joinpath(plotdir, "simulations", simulations[sim_num], "Δρ_ts_0_225.png"), densitydiff_TS)
 
-##Do not have the saved information to make plot with temp of lower level.
+############################################################################################
+## Density difference threshold for time series of density difference
+############################################################################################
+Θₗ_ts = T_ts[80, :, 10]
+Sₗ_ts = S_ts[80, :, 10]
+αₗ_ts = gsw_alpha.(Sₗ_ts, Θₗ_ts, p_ref)
+βₗ_ts = gsw_beta.(Sₗ_ts, Θₗ_ts, p_ref)
+ΔΘ_ts = ones(length(Θₗ_ts)) .* ΔΘ_thres_val[ΔΘ_thres_idx]
+Δρ_thres_ts = @. gsw_rho(Sₗ_ts - (αₗ_ts / βₗ_ts) * ΔΘ_ts, Θₗ_ts - ΔΘ_ts, p_ref) -
+                 gsw_rho(Sₗ_ts, Θₗ_ts, p_ref)
+
+lines!(ax[1], t, Δρ_thres_ts; color = :red)
+densitydiff_TS

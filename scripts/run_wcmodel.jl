@@ -20,7 +20,7 @@ run_model(; Tᵤ, Tₗ, Sᵤ, Sᵣ, Sₗ, Sₘ, ref_density, savepath, Δt)
 ## Initial conditions based on Δρ_thres, I want three initial conditions which are either
 # side of and on the critical salinity value found by S = Sₗ ± (αₗ / βₗ)ΔΘ.
 p_ref = 0
-S_increment = 0.002
+S_increment = 0.0015
 num_ics = 3
 
 ## ΔΘ = 0.5

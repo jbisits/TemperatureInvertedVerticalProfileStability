@@ -11,4 +11,4 @@ data_files = files[1:3]
 #  choices of initial ΔΘ this must be changed.
 
 saved_timeseries = joinpath(sim_data_path, "output_timeseries.jld2")
-save_timeseries!(saved_timeseries, data_files; ΔΘ_thres = 2.0)
+save_timeseries!(saved_timeseries, data_files; ΔΘ_thres = 1.0)

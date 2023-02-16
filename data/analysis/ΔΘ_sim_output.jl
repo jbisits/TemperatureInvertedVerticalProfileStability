@@ -5,7 +5,7 @@ using .VerticalProfileStability
 ## Choose which simulation
 ############################################################################################
 simulations = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0")
-sim_num = 1 # Chnage this to look at other simulations
+sim_num = 1 # Change this to look at other simulations
 sim_output = joinpath(sim_datadir, simulations[sim_num])
 
 ############################################################################################
@@ -118,7 +118,7 @@ densitydiff_TS = Figure(resolution = (1000, 700))
 titles = ["Maximum static denstiy difference\nfor "*simulations[sim_num],
           "Maximum cabbeling density difference\nfor "*simulations[sim_num]]
 ylabs = [L"\Delta \sigma_{0}^{s}", L"\Delta \sigma_{0}^{c}"]
-#ylimits = (minimum(Δρ_s)-0.002, maximum(Δρ_c)+)
+ylimits = (minimum(Δρ_s)-0.002, maximum(Δρ_c)+0.001)
 ax = [Axis(densitydiff_TS[1, i],
         title = titles[i],
         xlabel = "Time (days)",
@@ -148,4 +148,20 @@ densitydiff_TS[2, :] = Legend(densitydiff_TS, ax[1],
                             "Initial salinity in the mixed layer (g/kg)";
                             orientation = :horizontal)
 
+densitydiff_TS
+
+############################################################################################
+## Density difference threshold for time series of density difference
+############################################################################################
+
+Θₗ_ts = T_ts[80, :, 1]
+Sₗ_ts = S_ts[80, :, 1]
+αₗ_ts = gsw_alpha.(Sₗ_ts, Θₗ_ts, p_ref)
+βₗ_ts = gsw_beta.(Sₗ_ts, Θₗ_ts, p_ref)
+ΔΘ_thres_vals = [0.25, 0.5, 1.0] # set in the respective `collect_timeseires.jl` files
+ΔΘ_ts = ones(length(Θₗ_ts)) .* ΔΘ_thres_vals[sim_num]
+Δρ_thres_ts = @. gsw_rho(Sₗ_ts - (αₗ_ts / βₗ_ts) * ΔΘ_ts, Θₗ_ts - ΔΘ_ts, p_ref) -
+                 gsw_rho(Sₗ_ts, Θₗ_ts, p_ref)
+
+lines!(ax[1], t, Δρ_thres_ts; color = :red)
 densitydiff_TS
