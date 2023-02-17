@@ -4,6 +4,24 @@ using MAT, JLD2
 const ARGO_DATA = joinpath(@__DIR__, "..", "data", "observations", "ARGO_JJASO",
                            "Argo_JJASO.mat")
 
+## Extract maximum density differences
+ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
+Argo_ouput = joinpath(@__DIR__, "..", "data", "analysis", "ARGO_extracted.jld2")
+for ΔΘ ∈ ΔΘ_thres
+
+    @info "$(ΔΘ) threshold"
+    argo = argo_max_Δρ(ARGO_DATA, ΔΘ)
+
+    @info "Saving"
+    jldopen(Argo_ouput, "a+") do file
+
+        file["ΔΘ_thres_$(ΔΘ)"] = argo
+
+    end
+
+end
+
+## Playing around with some aspects of the data to get to know it
 ## Quick look
 file = matopen(ARGO_DATA)
 varnames = keys(file)
@@ -25,20 +43,3 @@ end
 isempty(findall(p[6530] .<= 1000))
 profile = 4000
 lines(reshape(S[profile], :), reshape(T[profile], :))
-
-## Extract maximum density differences
-ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
-Argo_ouput = joinpath(@__DIR__, "..", "data", "analysis", "ARGO_extracted.jld2")
-for ΔΘ ∈ ΔΘ_thres
-
-    @info "$(ΔΘ) threshold"
-    argo = argo_max_Δρ(ARGO_DATA, ΔΘ)
-
-    @info "Saving"
-    jldopen(Argo_ouput, "a+") do file
-
-        file["ΔΘ_thres_$(ΔΘ)"] = argo
-
-    end
-
-end

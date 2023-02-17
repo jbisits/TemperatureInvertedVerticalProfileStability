@@ -518,15 +518,19 @@ function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vec
             Sₐ = gsw_sa_from_sp.(Sₚ_vec, p_vec, lon[i], lat[i])
             Θ = gsw_ct_from_pt.(Sₐ, θ_vec)
 
-            Δρˢ[i], Δρᶜ[i], upper_level, lower_level = Δρ_max(Sₐ, Θ, p_vec, ΔΘ_thres)
-            if ismissing(upper_level)
-                Θᵤ[i], Θₗ[i] = upper_level, lower_level
-                pᵤ[i], pₗ[i] = upper_level, lower_level
-                Sᵤ[i], Sₗ[i] = upper_level, lower_level
+            res = Δρ_max(Sₐ, Θ, p_vec, ΔΘ_thres)
+            Δρᶜ[i] = res.Δρᶜ_max
+            Δρˢ[i] = res.Δρˢ_max
+            ul = res.upper_level
+            ll = res.lower_level
+            if ismissing(ul)
+                Θᵤ[i], Θₗ[i] = ul, ll
+                pᵤ[i], pₗ[i] = ul, ll
+                Sᵤ[i], Sₗ[i] = ul, ll
             else
-                Θᵤ[i], Θₗ[i] = Θ[upper_level], Θ[lower_level]
-                pᵤ[i], pₗ[i] = p_vec[upper_level], p_vec[lower_level]
-                Sᵤ[i], Sₗ[i] = Sₐ[upper_level], Sₐ[lower_level]
+                Θᵤ[i], Θₗ[i] = Θ[ul], Θ[ll]
+                pᵤ[i], pₗ[i] = p_vec[ul], p_vec[ll]
+                Sᵤ[i], Sₗ[i] = Sₐ[ul], Sₐ[ll]
             end
 
         end

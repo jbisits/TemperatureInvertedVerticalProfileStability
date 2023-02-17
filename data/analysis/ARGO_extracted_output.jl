@@ -1,13 +1,15 @@
 using .VerticalProfileStability
-using JLD2
+using JLD2, Statistics
 
-argo_output = jldopen(joinpath(@__DIR__, "ARGO_extracted.jld2"))
+const argo_output = jldopen(joinpath(@__DIR__, "ARGO_extracted.jld2"))
 
 ## Temperature inverted plots
 # set ylimits, much faster to extract then plot data then plot and use lims! on axis.
 xlimits = (-1.88, 10)
 ylimits = (-0.1, 0.1)
-
+# Density thresholds
+Θₗ_range = range(-2, 6; length = 100)
+ΔΘ_thres = [0.5, 1.0, 2.0, 3.0]
 ## Same axis, thresholds in different colours
 fig = Figure(size = (700, 700))
 ax = Axis(fig[1, 1];
@@ -23,16 +25,25 @@ for (i, key) ∈ enumerate(keys(argo_output))
     Θₗ = collect(skipmissing(argo_output[key]["Θₗ"]))
     find_inverted = findall(Θᵤ .< Θₗ)
     Δρˢ = collect(skipmissing(argo_output[key]["Δρˢ"]))
-    sc = scatter!(ax, Θₗ[find_inverted], Δρˢ[find_inverted]; color = colors[i], markersize = 4)
-    # lines!(ax, Θ_lower_range, Δρ_thres; color = colors[i],
-    #        label = "$(key)ᵒC")
+    sc = scatter!(ax, Θₗ[find_inverted], Δρˢ[find_inverted];
+                  color = colors[i], markersize = 4)
+
+    Sₗ_mean = mean(collect(skipmissing(argo_output[key]["Sₗ"][find_inverted])))
+    pₘ = 0.5 .* (collect(skipmissing(argo_output[key]["pₗ"][find_inverted])) .+
+                 collect(skipmissing(argo_output[key]["pᵤ"][find_inverted])))
+    pₘ_mean = mean(pₘ)
+    αₗ = gsw_alpha.(Sₗ_mean, Θₗ_range, pₘ_mean)
+    βₗ = gsw_beta.(Sₗ_mean, Θₗ_range, pₘ_mean)
+    Δρ_thres = @. gsw_rho.(Sₗ_mean - (αₗ / βₗ) * ΔΘ_thres[i], Θₗ_range - ΔΘ_thres[i],
+                          pₘ_mean) - gsw_rho.(Sₗ_mean, Θₗ_range, pₘ_mean)
+    lines!(ax, Θₗ_range, Δρ_thres; color = colors[i],
+           label = "ΔΘ = $(ΔΘ_thres[i])ᵒC")
 
 end
-fig
-#vlines!(ax, Θ_lower_range; label = "Histogram bins", linestyle = :dash, color = :black)
 #axislegend(ax; position = :rb)
 Legend(fig[2, 1], ax, "Δρ threshold for", orientation = :horizontal)
-save(joinpath(plotdir, "ECCO", "Θ_inversion", "2007_ΔΘ_thres_all.png"), fig)
+fig
+save(joinpath(plotdir, "ARGO", "ΔΘ_thres_all.png"), fig)
 
 ## Full plot
 # Temperature colourbar is wrong here, need a rethink for this and the pressure difference
@@ -41,7 +52,6 @@ colourbar_vars = ("lats", "Δp", "ΔΘ")
 colourbar_col = (:viridis, :batlow, :thermal)
 # These have been found by looking at the subset for each key in the dictionary and taking
 # the `extrema`. The code is not here though.
-lats = round.(vec(vars["lat"]); digits = 2)
 colourbar_ranges = (extrema(lats), (20, 410), (-3.5, -0.5))
 choose_var = 1
 ## Setup axis
@@ -69,6 +79,7 @@ for (i, key) ∈ enumerate(keys_mat)
     Θᵤ = collect(skipmissing(argo_output[key]["Θᵤ"]))
     Θₗ = collect(skipmissing(argo_output[key]["Θₗ"]))
     Δρˢ = collect(skipmissing(argo_output[key]["Δρˢ"]))
+    plot_var = round.(extracted_data[key][colourbar_vars[choose_var]][find]; digits = 1)
     find_inverted = findall(Θᵤ .< Θₗ)
     # plot_var = round.(argo_output[key][colourbar_vars[choose_var]][find_inverted]; digits = 1)
     cbar_lab =  if colourbar_vars[choose_var] == "lats"
