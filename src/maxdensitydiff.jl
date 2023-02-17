@@ -483,13 +483,15 @@ end
 # ARGO data
 """
     function argo_max_Δρ(data_file::AbstractString,
-                         ΔΘ_thres::Union{Float64, Vector{Float64}})
+                         ΔΘ_thres::Union{Float64, Vector{Float64}}; max_pressure = 1000)
 Calculate the maximum static density difference from the `Argo_JJASO.mat` data. The function
 takes in the data file, extracts the variables, converts to TEOS-10 standard then uses
 `Δρ_max` to find the maximum static and cabbeling density difference, and the indexes of the
-levels used to find these density differences.
+levels used to find these density differences. As with the ECCO data we only look to a depth
+(in this case the vertical coordinate is pressure) of 1000m so max_pressure is 1000dbar.
 """
-function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vector{Float64}})
+function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vector{Float64}};
+                     max_pressure = 1000)
 
     vars = matread(data_file)
     lat = vec(vars["lat"])
@@ -506,7 +508,9 @@ function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vec
         if i % 1000 == 0
             @info "Profile $(i) of $(length(lat))"
         end
-        Sₚ_vec, θ_vec, p_vec = vec(Sₚ[i]), vec(θ[i]), vec(p[i])
+        p_vec = vec(p[i])
+        find_1000 = findall(p_vec .≤ max_pressure)
+        Sₚ_vec, θ_vec, p_vec = vec(Sₚ[i])[find_1000], vec(θ[i])[find_1000], p_vec[find_1000]
         Sₐ = gsw_sa_from_sp.(Sₚ_vec, p_vec, lon[i], lat[i])
         Θ = gsw_ct_from_pt.(Sₐ, θ_vec)
 
