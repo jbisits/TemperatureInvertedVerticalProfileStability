@@ -508,21 +508,27 @@ function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vec
         if i % 1000 == 0
             @info "Profile $(i) of $(length(lat))"
         end
+
         p_vec = vec(p[i])
         find_1000 = findall(p_vec .≤ max_pressure)
-        Sₚ_vec, θ_vec, p_vec = vec(Sₚ[i])[find_1000], vec(θ[i])[find_1000], p_vec[find_1000]
-        Sₐ = gsw_sa_from_sp.(Sₚ_vec, p_vec, lon[i], lat[i])
-        Θ = gsw_ct_from_pt.(Sₐ, θ_vec)
+        if !isempty(find_1000)
 
-        Δρˢ[i], Δρᶜ[i], upper_level, lower_level = Δρ_max(Sₐ, Θ, p_vec, ΔΘ_thres)
-        if ismissing(upper_level)
-            Θᵤ[i], Θₗ[i] = upper_level, lower_level
-            pᵤ[i], pₗ[i] = upper_level, lower_level
-            Sᵤ[i], Sₗ[i] = upper_level, lower_level
-        else
-            Θᵤ[i], Θₗ[i] = Θ[upper_level], Θ[lower_level]
-            pᵤ[i], pₗ[i] = p_vec[upper_level], p_vec[lower_level]
-            Sᵤ[i], Sₗ[i] = Sₐ[upper_level], Sₐ[lower_level]
+            p_vec = p_vec[find_1000]
+            Sₚ_vec, θ_vec = vec(Sₚ[i])[find_1000], vec(θ[i])[find_1000]
+            Sₐ = gsw_sa_from_sp.(Sₚ_vec, p_vec, lon[i], lat[i])
+            Θ = gsw_ct_from_pt.(Sₐ, θ_vec)
+
+            Δρˢ[i], Δρᶜ[i], upper_level, lower_level = Δρ_max(Sₐ, Θ, p_vec, ΔΘ_thres)
+            if ismissing(upper_level)
+                Θᵤ[i], Θₗ[i] = upper_level, lower_level
+                pᵤ[i], pₗ[i] = upper_level, lower_level
+                Sᵤ[i], Sₗ[i] = upper_level, lower_level
+            else
+                Θᵤ[i], Θₗ[i] = Θ[upper_level], Θ[lower_level]
+                pᵤ[i], pₗ[i] = p_vec[upper_level], p_vec[lower_level]
+                Sᵤ[i], Sₗ[i] = Sₐ[upper_level], Sₐ[lower_level]
+            end
+
         end
 
     end

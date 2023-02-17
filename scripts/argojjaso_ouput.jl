@@ -18,7 +18,11 @@ lon = vars["lon"]
 S = vars["sal"]
 T = vars["temp"]
 p = vars["press"]
-
+emptyp = similar(p)
+for i ∈ eachindex(p)
+    emptyp[i] = length(findall(p[i] .<= 1000))
+end
+isempty(findall(p[6530] .<= 1000))
 profile = 4000
 lines(reshape(S[profile], :), reshape(T[profile], :))
 
