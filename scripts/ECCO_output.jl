@@ -1,62 +1,62 @@
 ## Saving files of variables from the monthly data
-const ECCO_data_analysis = joinpath(@__DIR__, "../data/analysis/")
+const ECCO_DATA_ANALYSIS = joinpath(@__DIR__, "../data/analysis/")
 using Glob, Dates, JLD2
 using .VerticalProfileStability
 
-ECCO_data = glob("*.nc", ECCO_datadir)
+ECCO_data = glob("*.nc", ECCO_DATADIR)
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 rs_series = RasterSeries(ECCO_data, Ti(timestamps); child = RasterStack)
 
 ## ΔΘ_thres = 0.5
 ΔΘ_thres = 0.5
-mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
-savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## ΔΘ_thres = 1.0
 ΔΘ_thres = 1.0
-mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
-savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## ΔΘ_thres = 2.0
 ΔΘ_thres = 2.0
-mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
-savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## ΔΘ_thres = 3.0
 ΔΘ_thres = 3.0
-mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
-savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## 0.5 ≤ ΔΘ_thres < 1.0
 ΔΘ_thres = [0.5, 1.0]
-mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
-savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## 1.0 ≤ ΔΘ_thres < 2.0
 ΔΘ_thres = [1.0, 2.0]
-mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
-savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## 2.0 ≤ ΔΘ_thres < 3.0
 ΔΘ_thres = [2.0, 3.0]
-mkdir(joinpath(ECCO_data_analysis, "output_$ΔΘ_thres"))
-savepath = joinpath(ECCO_data_analysis, "output_$ΔΘ_thres")
+mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
+savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## Extract temperature inverted data from each data threshold and save to .jld2
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
-extracted_data = joinpath(ECCO_data_analysis, "ECCO_invertedΔΘ_extracted_data.jld2")
+extracted_data = joinpath(ECCO_DATA_ANALYSIS, "ECCO_invertedΔΘ_extracted_data.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
     # Data
     @info "Reading RasterSeries"
-    output_path = joinpath(ECCO_data_analysis, "output_$(select_ΔΘ)")
+    output_path = joinpath(ECCO_DATA_ANALYSIS, "output_$(select_ΔΘ)")
     output_files = glob("*.nc", output_path)
     output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
 
@@ -114,11 +114,11 @@ end
 ## Extract temperature stratified data from each data threshold and save to .jld2
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0]]
-extracted_data = joinpath(ECCO_data_analysis, "ECCO_stratifiedΔΘ_extracted_data.jld2")
+extracted_data = joinpath(ECCO_DATA_ANALYSIS, "ECCO_stratifiedΔΘ_extracted_data.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
     # Data
     @info "Reading RasterSeries"
-    output_path = joinpath(ECCO_data_analysis, "output_$(select_ΔΘ)")
+    output_path = joinpath(ECCO_DATA_ANALYSIS, "output_$(select_ΔΘ)")
     output_files = glob("*.nc", output_path)
     output_series = RasterSeries(output_files, Ti(timestamps); child = RasterStack)
 

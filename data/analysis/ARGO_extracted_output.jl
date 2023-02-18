@@ -43,10 +43,10 @@ end
 #axislegend(ax; position = :rb)
 Legend(fig[2, 1], ax, "Δρ threshold for", orientation = :horizontal)
 fig
-save(joinpath(plotdir, "ARGO", "ΔΘ_thres_all.png"), fig)
+save(joinpath(PLOTDIR, "ARGO", "ΔΘ_thres_all.png"), fig)
 ylims!(ax, -0.1, 0.01)
 fig
-save(joinpath(plotdir, "ARGO", "ΔΘ_thres_all_zoom.png"), fig)
+save(joinpath(PLOTDIR, "ARGO", "ΔΘ_thres_all_zoom.png"), fig)
 ## Full plot
 # Temperature colourbar is wrong here, need a rethink for this and the pressure difference
 keys_mat = reshape(keys(ARGO_OUTPUT), 2, 2)

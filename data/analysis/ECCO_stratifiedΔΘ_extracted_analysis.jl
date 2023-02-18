@@ -1,7 +1,8 @@
 using .VerticalProfileStability
 using JLD2, Statistics
 
-extracted_data = jldopen(joinpath(@__DIR__, "ECCO_stratifiedΔΘ_extracted_data.jld2"))
+const EXTRACTED_DATA_STRAT = jldopen(joinpath(@__DIR__,
+                                              "ECCO_stratifiedΔΘ_extracted_data.jld2"))
 
 ## Plots
 # set ylimits, much faster to extract then plot data then plot and use lims! on axis.
@@ -18,15 +19,15 @@ ax = Axis(fig[1, 1];
 xlims!(ax, xlimits)
 ylims!(ax, ylimits)
 colors = [:blue, :orange, :red, :green]
-for (i, key) ∈ enumerate(keys(extracted_data))
+for (i, key) ∈ enumerate(keys(EXTRACTED_DATA_STRAT))
 
-    Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
+    Θₗ, Δρˢ = EXTRACTED_DATA_STRAT[key]["Θₗ"], EXTRACTED_DATA_STRAT[key]["Δρˢ"]
     find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
-    lats = extracted_data[key]["lats"][find]
-    Δρ_thres = extracted_data[key]["Δρ_thres"]
-    ΔΘ_range = extracted_data[key]["ΔΘ_range"]
-    Θ_lower_range = extracted_data[key]["Θ_lower_range"]
+    lats = EXTRACTED_DATA_STRAT[key]["lats"][find]
+    Δρ_thres = EXTRACTED_DATA_STRAT[key]["Δρ_thres"]
+    ΔΘ_range = EXTRACTED_DATA_STRAT[key]["ΔΘ_range"]
+    Θ_lower_range = EXTRACTED_DATA_STRAT[key]["Θ_lower_range"]
 
     sc = scatter!(ax, Θₗ, Δρˢ; color = colors[i], markersize = 4)
     lines!(ax, Θ_lower_range, Δρ_thres; color = colors[i],
@@ -36,10 +37,10 @@ end
 #vlines!(ax, Θ_lower_range; label = "Histogram bins", linestyle = :dash, color = :black)
 #axislegend(ax; position = :rb)
 Legend(fig[2, 1], ax, "Δρ threshold for", orientation = :horizontal)
-save(joinpath(plotdir, "ECCO", "Θ_stratified", "2007_ΔΘ_thres_all.png"), fig)
+save(joinpath(PLOTDIR, "ECCO", "Θ_stratified", "2007_ΔΘ_thres_all.png"), fig)
 
 ## Full plot
-keys_mat = reshape(keys(extracted_data), 2, 2)
+keys_mat = reshape(keys(EXTRACTED_DATA_STRAT), 2, 2)
 colourbar_vars = ("lats", "Δp_vals", "ΔΘ_vals")
 colourbar_col = (:viridis, :batlow, :thermal)
 # These have been found by looking at the subset for each key in the dictionary and taking
@@ -69,10 +70,10 @@ fig
 ## Plot
 for (i, key) ∈ enumerate(keys_mat)
 
-    Θₗ, Δρˢ = extracted_data[key]["Θₗ"], extracted_data[key]["Δρˢ"]
+    Θₗ, Δρˢ = EXTRACTED_DATA_STRAT[key]["Θₗ"], EXTRACTED_DATA_STRAT[key]["Δρˢ"]
     find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
-    plot_var = round.(extracted_data[key][colourbar_vars[choose_var]][find]; digits = 1)
+    plot_var = round.(EXTRACTED_DATA_STRAT[key][colourbar_vars[choose_var]][find]; digits = 1)
     cbar_lab =  if colourbar_vars[choose_var] == "lats"
                    "Latitude (°N)"
                 elseif colourbar_vars[choose_var] == "Δp_vals"
@@ -80,9 +81,9 @@ for (i, key) ∈ enumerate(keys_mat)
                 elseif colourbar_vars[choose_var] == "ΔΘ_vals"
                     "ΔΘ (°C)"
                 end
-    Δρ_thres = extracted_data[key]["Δρ_thres"]
-    ΔΘ_range = extracted_data[key]["ΔΘ_range"]
-    Θ_lower_range = extracted_data[key]["Θ_lower_range"]
+    Δρ_thres = EXTRACTED_DATA_STRAT[key]["Δρ_thres"]
+    ΔΘ_range = EXTRACTED_DATA_STRAT[key]["ΔΘ_range"]
+    Θ_lower_range = EXTRACTED_DATA_STRAT[key]["Θ_lower_range"]
 
     sc = scatter!(ax[i], Θₗ, Δρˢ;
                   color = plot_var,
@@ -101,24 +102,23 @@ lin_elements = [LineElement(color = col) for col ∈ colors]
 leg_labels = "ΔΘ = " .* string.([0.5, 1.0, 2.0, 3.0]) .* "°C"
 Legend(fig[3, :], lin_elements, leg_labels, "Δρ threshold for", orientation = :horizontal)
 # Save
-save(joinpath(plotdir, "ECCO", "Θ_stratified",
+save(joinpath(PLOTDIR, "ECCO", "Θ_stratified",
               "2007_mult_ΔΘ_thres_$(colourbar_vars[choose_var]).png"), fig)
 
 ## Close data file
-close(extracted_data)
+close(EXTRACTED_DATA_STRAT)
 
 ## Statistics
 
-extracted_data = jldopen(joinpath(@__DIR__, "ECCO_stratifiedΔΘ_extracted_data.jld2"))
-ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(extracted_data)
+ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(EXTRACTED_DATA_STRAT)
 
 ## ΔΘ = 2 threshold
 
-Θₗ = collect(skipmissing(extracted_data[ΔΘ_1]["Θₗ"]))
-Δρˢ = collect(skipmissing(extracted_data[ΔΘ_1]["Δρˢ"]))
-lats = extracted_data[ΔΘ_1]["lats"]
-Δρ_thres = extracted_data[ΔΘ_1]["Δρ_thres"]
-Θ_lower_range = extracted_data[ΔΘ_1]["Θ_lower_range"]
+Θₗ = collect(skipmissing(EXTRACTED_DATA_STRAT[ΔΘ_1]["Θₗ"]))
+Δρˢ = collect(skipmissing(EXTRACTED_DATA_STRAT[ΔΘ_1]["Δρˢ"]))
+lats = EXTRACTED_DATA_STRAT[ΔΘ_1]["lats"]
+Δρ_thres = EXTRACTED_DATA_STRAT[ΔΘ_1]["Δρ_thres"]
+Θ_lower_range = EXTRACTED_DATA_STRAT[ΔΘ_1]["Θ_lower_range"]
 
 ## Histogram
 find_ = findall(Θₗ .≤ 10)
