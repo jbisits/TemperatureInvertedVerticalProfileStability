@@ -6,7 +6,7 @@ using .VerticalProfileStability
 ############################################################################################
 simulations = ("initial_Θ_minus1_85_0_5", "initial_Θ_18_15_20_5")
 sim_num = 1 # Chnage this to look at other simulations
-sim_output = joinpath(sim_datadir, simulations[sim_num])
+sim_output = joinpath(SIM_DATADIR, simulations[sim_num])
 
 ############################################################################################
 ## Open and load data from chosen simulation, then extract initial conditions
