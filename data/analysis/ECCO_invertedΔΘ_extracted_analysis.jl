@@ -113,11 +113,11 @@ close(EXTRACTED_DATA_INV)
 ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(EXTRACTED_DATA_INV)
 
 ## ΔΘ = 2 threshold
-Θₗ = collect(skipmissing(EXTRACTED_DATA_INV[ΔΘ_1]["Θₗ"]))
-Δρˢ = collect(skipmissing(EXTRACTED_DATA_INV[ΔΘ_1]["Δρˢ"]))
-lats = EXTRACTED_DATA_INV[ΔΘ_1]["lats"]
-Δρ_thres = EXTRACTED_DATA_INV[ΔΘ_1]["Δρ_thres"]
-Θ_lower_range = EXTRACTED_DATA_INV[ΔΘ_1]["Θ_lower_range"]
+Θₗ = collect(skipmissing(EXTRACTED_DATA_INV[ΔΘ_3]["Θₗ"]))
+Δρˢ = collect(skipmissing(EXTRACTED_DATA_INV[ΔΘ_3]["Δρˢ"]))
+lats = EXTRACTED_DATA_INV[ΔΘ_3]["lats"]
+Δρ_thres = EXTRACTED_DATA_INV[ΔΘ_3]["Δρ_thres"]
+Θ_lower_range = EXTRACTED_DATA_INV[ΔΘ_3]["Θ_lower_range"]
 
 ## Histogram
 find_ = findall(Θₗ .≤ 10)
@@ -126,11 +126,10 @@ find_ = findall(Θₗ .≤ 10)
 hist(Θₗ_data; bins = Θ_lower_range, normalization = :pdf)
 hist(Θₗ_data; bins = range(extrema(Θ_lower_range)...; step = 0.5))
 
-using StatsBase
-
 ## Fit a `Histogram` then get the index of the elements in each bin. This will allow
 # comparison of `Δρ_thres` value calculated with all the static density differences for a
 # given lower layer temperature.
+using StatsBase
 
 Θₗ_histfit = fit(Histogram, Θₗ_data, Θ_lower_range)
 Θₗ_binidx = StatsBase.binindex.(Ref(Θₗ_histfit), Θₗ_data)
