@@ -56,7 +56,7 @@ ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics)))
 
 ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics * 3)))
 ic_colour = reshape(ic_colour, 3, 3)
-ΔΘ_colour = [:blue, :orange, :red]
+ΔΘ_colour = [:blue, :orange, :green]
 ic_plot = Figure(resolution = (1000, 1000))
 xlabs = ["Temperature (∘C)" "Salinity (g/kg)"; "Inital ΔΘ (°C) at interface " "Salinity (g/kg)"]
 ylabs = ["Depth (m)" "Depth (m)"; "Δρ (kgm⁻³)" "Temperature (°C)"]
@@ -124,8 +124,6 @@ for (j, sim) ∈ enumerate(simulations)
                           Θₗ_ - ΔΘ_thres_vals[j], p_ref) -
                   gsw_rho(Sₗ_, Θₗ_, p_ref)
     Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
-    println(Δρ_thres)
-    println(Δρ_static)
     scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 3), Δρ_static; color = ic_colour[:, j])
     lines!(ax[1, 2], range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length=3), Δρ_thres;
              label = "Initial ΔΘ = $(ΔΘ_thres_vals[j])",
@@ -142,7 +140,6 @@ Legend(ic_plot[3, 1], ax[1, 1], "Initial ΔΘ at the mixed\nand lower layer inte
        orientation = :horizontal, nbanks = 3)
 Legend(ic_plot[3, 2], ax[2, 1], "Initial salinity in the mixed layer",
        orientation = :horizontal, nbanks = 3)
-#Legend(ic_plot[2, 1], ax[1, 1], "Initial ΔΘ between levels")
 ic_plot
 colsize!(ic_plot.layout, 1, Auto(0.4))
 ic_plot
