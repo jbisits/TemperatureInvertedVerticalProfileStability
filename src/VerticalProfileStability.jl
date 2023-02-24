@@ -2,15 +2,23 @@ module VerticalProfileStability
 
 using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, CairoMakie, Reexport
 
-@reexport using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, Dates, CairoMakie
+@reexport using Rasters,
+                OceanRasterConversions,
+                GibbsSeaWater,
+                Glob,
+                Dates,
+                CairoMakie,
+                NCDatasets
 
 export
     ECCO_DATADIR,
+    EN4_DATADIR,
     SIM_DATADIR,
     PLOTDIR,
     SRCDIR
 
 const ECCO_DATADIR = joinpath(@__DIR__, "../data/observations/ECCO_daily_mean_TS/")
+const EN4_DATADIR = joinpath(@__DIR__, "../data/observations/EN4/")
 const SIM_DATADIR = joinpath(@__DIR__, "../data/simulations/")
 const PLOTDIR = joinpath(@__DIR__, "../plots")
 const SRCDIR = joinpath(@__DIR__)

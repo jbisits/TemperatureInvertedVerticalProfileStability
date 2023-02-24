@@ -5,8 +5,8 @@ using .VerticalProfileStability
 ## Choose which simulation
 ############################################################################################
 simulations = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0")
-sim_num = 2 # Change this to look at other simulations
-sim_output = joinpath(sim_datadir, simulations[sim_num])
+sim_num = 3 # Change this to look at other simulations
+sim_output = joinpath(SIM_DATADIR, simulations[sim_num])
 
 ############################################################################################
 ## Open and load data from chosen simulation, then extract initial conditions
@@ -35,7 +35,7 @@ sal_ic_vals_string = string.(round.([S₀[i][end] for i ∈ 1:num_ics]; digits =
 
 # Axis and constant setups
 Θ_range = (-2, 1)
-T = range(Θᵤ - 0.5, Θₗ + 0.5, 200)
+T = range(Θᵤ - 0.25, Θₗ + 0.25, 200)
 T_grid = T' .* ones(length(T))
 S = range(S₀[1][end] - 0.01, 34.71, 200)
 S_grid = S .* ones(length(S))'
@@ -54,18 +54,20 @@ tangent = @. Θₗ + m * (S_tangent - Sₗ)
 
 ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics)))
 
+ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics * 3)))
+ic_colour = reshape(ic_colour, 3, 3)
+ΔΘ_colour = [:blue, :orange, :red]
 ic_plot = Figure(resolution = (1000, 1000))
-xlabs = ["Temperature (∘C)" "Salinity (g/kg)"; "Depth (m)" "Salinity (g/kg)"]
-ylabs = ["Depth (m)" "Depth (m)"; "Temperature (°C)" "Temperature (°C)"]
-titles = ["Nothing" "Salinity initial conditions";
-          "Temperature initial conditions" "Fofonoff diagram - used to find the\nsalinity initial conditions in mixed alyer"]
+xlabs = ["Temperature (∘C)" "Salinity (g/kg)"; "Inital ΔΘ (°C) at interface " "Salinity (g/kg)"]
+ylabs = ["Depth (m)" "Depth (m)"; "Δρ (kgm⁻³)" "Temperature (°C)"]
+titles = ["(a) Temperature initial conditions" "(b) Salinity initial conditions";
+          "(c) Density difference threshold " "(d) Fofonoff diagram of initial conditions"]
 ax = [Axis(ic_plot[j, i],
         xlabel = xlabs[j, i],
         xaxisposition = (j == 1 ? :top : :bottom),
         ylabel = ylabs[j, i],
         title = titles[j, i]) for i ∈ 1:2, j ∈ 1:2]
-delete!(ax[1, 1])
-linkyaxes!(ax[1, 2], ax[2, 2])
+linkyaxes!(ax[1, 1], ax[2, 1])
 linkxaxes!(ax[2, 1], ax[2, 2])
 # Fofonoff diagram
 contour!(ax[2, 2], S, T, ρ,
@@ -80,8 +82,7 @@ scatter!(ax[2, 2], [Sₗ], [Θₗ], color = :red, label = "Deep water mass")
 ic_plot
 ## Plotting
 for (j, sim) ∈ enumerate(simulations)
-    sim_output_ = joinpath(sim_datadir, sim)
-    println(sim_output_)
+    sim_output_ = joinpath(SIM_DATADIR, sim)
     saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
     S_ts_, T_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"]
     close(saved_ts)
@@ -97,28 +98,55 @@ for (j, sim) ∈ enumerate(simulations)
 
     # Salinity depth
     for i ∈ 1:num_ics
-        lines!(ax[2, 1], S₀_[i], z, color = ic_colour[i], label = sal_ic_vals_string_[i])
+        lines!(ax[2, 1], S₀_[i], z, color = ic_colour[i, j], label = sal_ic_vals_string_[i])
     end
     # Temperature depth
     Θᵤ_array_ = fill(Θᵤ_, num_ics)
-    lines!(ax[1, 2], z, T₀_[1]; label = "ΔΘ = $(abs(Θᵤ_ + Θₗ_))°C",
-           color = T₀_[1], colorrange = Θ_range, colormap = :thermal)
+    # lines!(ax[1, 1], T₀_[1], z; label = "ΔΘ = $(abs(Θᵤ_ + Θₗ_))°C",
+    #        color = T₀_[1], colorrange = Θ_range, colormap = :thermal)
+    lines!(ax[1, 1], T₀_[1], z; label = "ΔΘ = $(ΔΘ_thres_vals[j])°C",
+            color = ΔΘ_colour[j])
     # Salinity on Fofonoff diagram
     scatter!(ax[2, 2], [S₀_[i][end] for i ∈ 1:num_ics], Θᵤ_array_;
-            color = ic_colour, markersize = 6)
+            color = ic_colour[:, j], markersize = 6)
     if j == 1
         axislegend(ax[2, 2], position = :lt)
     end
+    Θₗ_ = [T_ts_[80, 1, i] for i ∈ 1:num_ics]
+    Sₗ_ = [S_ts_[80, 1, i] for i ∈ 1:num_ics]
+    Θᵤ_ = [T_ts_[81, 1, i] for i ∈ 1:num_ics]
+    Sᵤ_ = [S_ts_[81, 1, i] for i ∈ 1:num_ics]
+
+    αₗ_ = gsw_alpha.(Sₗ_, Θₗ_, p_ref)
+    βₗ_ = gsw_beta.(Sₗ_, Θₗ_, p_ref)
+
+    Δρ_thres = @. gsw_rho(Sₗ_ - (αₗ_ / βₗ_) * ΔΘ_thres_vals[j],
+                          Θₗ_ - ΔΘ_thres_vals[j], p_ref) -
+                  gsw_rho(Sₗ_, Θₗ_, p_ref)
+    Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
+    println(Δρ_thres)
+    println(Δρ_static)
+    scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 3), Δρ_static; color = ic_colour[:, j])
+    lines!(ax[1, 2], range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length=3), Δρ_thres;
+             label = "Initial ΔΘ = $(ΔΘ_thres_vals[j])",
+             color = ΔΘ_colour[j])
+#    if j == 3
+#     axislegend(ax[1, 2]; position = :lb)
+#    end
 end
 ic_plot
 
 ## Legend and save
-Legend(ic_plot[1, 1][1, 2], ax[2, 1], "Initial salinity in the mixed layer",
-       tellwidth = false)
-Legend(ic_plot[1, 1][1, 1], ax[1, 2], "Initial ΔΘ between levels",
-       tellwidth = false)
+#delete!(ax[1, 2])
+Legend(ic_plot[3, 1], ax[1, 1], "Initial ΔΘ at the mixed\nand lower layer interface",
+       orientation = :horizontal, nbanks = 3)
+Legend(ic_plot[3, 2], ax[2, 1], "Initial salinity in the mixed layer",
+       orientation = :horizontal, nbanks = 3)
+#Legend(ic_plot[2, 1], ax[1, 1], "Initial ΔΘ between levels")
 ic_plot
-save(joinpath(PLOTDIR, "simulations", "ΔΘ_ics.png"), ic_plot)
+colsize!(ic_plot.layout, 1, Auto(0.4))
+ic_plot
+#save(joinpath(PLOTDIR, "simulations", "ΔΘ_ics.png"), ic_plot)
 
 ############################################################################################
 ## Diffusivity time series from the simulation
@@ -207,3 +235,39 @@ Sₗ_ts = S_ts[80, :, 1]
 
 lines!(ax[1], t, Δρ_thres_ts; color = :red)
 densitydiff_TS
+
+## Threshold density diff scatter plot
+fig = Figure(size = (500, 500))
+ax = Axis(fig[1, 1],
+          xlabel = "ΔΘ (°C)",
+          ylabel = "Δρ (kgm⁻³)")
+ΔΘ_thres_vals = [0.5, 1.0, 2.0]
+
+for (j, sim) ∈ enumerate(simulations)
+    sim_output_ = joinpath(SIM_DATADIR, sim)
+    saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
+    S_ts_, T_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"]
+    close(saved_ts)
+
+    Θₗ_ = [T_ts_[80, 1, i] for i ∈ 1:num_ics]
+    Sₗ_ = [S_ts_[80, 1, i] for i ∈ 1:num_ics]
+    Θᵤ_ = [T_ts_[81, 1, i] for i ∈ 1:num_ics]
+    Sᵤ_ = [S_ts_[81, 1, i] for i ∈ 1:num_ics]
+    println(Θᵤ_)
+    println(Sᵤ_)
+    println(Θₗ_)
+    println(Sₗ_)
+    αₗ_ = gsw_alpha.(Sₗ_, Θₗ_, p_ref)
+    βₗ_ = gsw_beta.(Sₗ_, Θₗ_, p_ref)
+
+    Δρ_thres = @. gsw_rho(Sₗ_ - (αₗ_ / βₗ_) * ΔΘ_thres_vals[j], Θₗ_ - ΔΘ_thres_vals[j], p_ref) -
+                  gsw_rho(Sₗ_, Θₗ_, p_ref)
+    Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
+    println(Δρ_thres)
+    println(Δρ_static)
+    scatter!(ax, fill(ΔΘ_thres_vals[j], 3), Δρ_static; color = ic_colour)
+    lines!(ax, range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length = 3), Δρ_thres;
+             label = "Δρ threshold for initial ΔΘ = $(ΔΘ_thres_vals[j])", color = :red)
+end
+axislegend(ax; position = :rt)
+fig

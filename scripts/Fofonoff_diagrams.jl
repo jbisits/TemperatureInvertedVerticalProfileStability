@@ -187,29 +187,30 @@ end
 fig
 
 ## Δρ_thres
+Θ = LinRange(0.5, 20, 100)
 p_ref = 0.0
 δΘ = [0.25, 0.5, 1.0, 2.0]
+Sₐ_mean = 34.9
 Δρ_thres_lower = Array{Float64}(undef, length(Θ), length(δΘ))
 Δρ_thres_upper = similar(Δρ_thres_lower)
 
 for (j, δΘ_) ∈ enumerate(δΘ)
     for i ∈ eachindex(Θ)
 
-        αₗ = gsw_alpha(Sₐ[i], Θ[i], p_ref)
-        βₗ = gsw_beta(Sₐ[i], Θ[i], p_ref)
+        αₗ = gsw_alpha(Sₐ_mean, Θ[i], p_ref)
+        βₗ = gsw_beta(Sₐ_mean, Θ[i], p_ref)
 
-        δS_lower = Sₐ[i] - (αₗ / βₗ) * (δΘ_)
-        δS_upper = Sₐ[i] + (αₗ / βₗ) * (δΘ_)
+        δS_lower = Sₐ_mean - (αₗ / βₗ) * (δΘ_)
+        δS_upper = Sₐ_mean + (αₗ / βₗ) * (δΘ_)
         # scatter!(ax, [δS_lower], [Θ[i] - δΘ_]; color  = :orange)
         # scatter!(ax, [δS_upper], [Θ[i] + δΘ_]; color  = :green)
         Δρ_thres_lower[i, j] = gsw_rho(δS_lower, Θ[i] - δΘ_, p_ref) -
-                               gsw_rho(Sₐ[i], Θ[i], p_ref)
+                               gsw_rho(Sₐ_mean, Θ[i], p_ref)
         Δρ_thres_upper[i, j] = gsw_rho(δS_upper, Θ[i] + δΘ_, p_ref) -
-                               gsw_rho(Sₐ[i], Θ[i], p_ref)
+                               gsw_rho(Sₐ_mean, Θ[i], p_ref)
 
     end
 end
-fig
 
 fig2 = Figure()
 ax = Axis(fig2[1, 1];
@@ -224,3 +225,46 @@ series!(ax, Θ, Δρ_thres_lower'; labels = string.(δΘ) .* "ᵒC")
 axislegend(ax; position = :rb)
 fig2
 #save(joinpath(plotdir, "Δρ_thres_multiple_deg.png"), fig2)
+
+## Δρ threshold using salinity
+Sₐ = LinRange(33, 39, 100)
+#δS = (αₗ / βₗ) .* δΘ
+δS
+Θ_mean = 3.5
+Δρ_thres_lower = Array{Float64}(undef, length(Sₐ), length(δS))
+Δρ_thres_upper = similar(Δρ_thres_lower)
+
+for (j, δS_) ∈ enumerate(δS)
+    for i ∈ eachindex(Sₐ)
+
+        αₗ = gsw_alpha(Sₐ[i], Θ_mean, p_ref)
+        βₗ = gsw_beta(Sₐ[i], Θ_mean, p_ref)
+
+        δΘ_lower = Θ_mean - (βₗ / αₗ) * (δS_)
+        δΘ_upper = Θ_mean + (βₗ / αₗ) * (δS_)
+        # scatter!(ax, [Sₐ[i] - δS_], [δΘ_lower]; color  = :orange)
+        # scatter!(ax, [Sₐ[i] + δS_], [δΘ_upper]; color  = :green)
+        Δρ_thres_lower[i, j] = gsw_rho(Sₐ[i] - δS_, δΘ_lower, p_ref) -
+                               gsw_rho(Sₐ[i], Θ_mean, p_ref)
+        Δρ_thres_upper[i, j] = gsw_rho(Sₐ[i] + δS_, δΘ_lower, p_ref) -
+                               gsw_rho(Sₐ[i], Θ_mean, p_ref)
+
+    end
+end
+
+fig3 = Figure()
+ax = Axis(fig3[1, 1];
+          xlabel = "Absolute salinity (g/kg) of lower level",
+          xaxisposition = :top,
+          ylabel = "Δρ_thres (kgm⁻³)",
+          title = "Δρ threshold for ΔS threshold = $δS g/kg against Sₐ of lower level"
+          )
+series!(ax, Sₐ, Δρ_thres_lower'; labels = string.(δS) .* "g/kg")
+axislegend(ax; position = :rb)
+fig3
+
+## Relationshp between a prescribed ΔΘ and ΔS from a point (Sₗ, Θₗ) is ΔS / ΔΘ = α' / β'.
+Sₗ, Θₗ = 34.7, 0.5
+αₗ, βₗ = gsw_alpha(Sₗ, Θₗ, 0), gsw_beta(Sₗ, Θₗ, 0)
+ΔΘ = 0.5
+ΔS = (αₗ / βₗ) * ΔΘ
