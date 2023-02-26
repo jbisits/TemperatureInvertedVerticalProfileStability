@@ -37,8 +37,8 @@ function Δρ_static(Sₐ::Vector, Θ::Vector, p::Vector)
 end
 
 """
-    function profiles_Δρ_max(Sₐ::Vector, Θ::Vector, p::Vector,
-                             ΔΘ_thres::Union{Float64, Vector{Float64}})
+    function Δρ_max(Sₐ::Vector, Θ::Vector, p::Vector,
+                    ΔΘ_thres::Union{Float64, Vector{Float64}})
 Compute the maximum cabbeling density difference between all pairs of vertical levels from
 a profile. The density differences are computed using `Δρ_cab` and `Δρ_static`.
 """
@@ -480,7 +480,6 @@ function get_lats(series::RasterSeries, var::Symbol)
 
 end
 
-# ARGO data
 """
     function argo_max_Δρ(data_file::AbstractString,
                          ΔΘ_thres::Union{Float64, Vector{Float64}}; max_pressure = 1000)
@@ -539,6 +538,20 @@ function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vec
 
     return Dict("Δρˢ" => Δρˢ, "Δρᶜ" => Δρᶜ, "Θᵤ" => Θᵤ, "Θₗ" => Θₗ, "pᵤ" => pᵤ, "pₗ" => pₗ,
                 "Sᵤ" => Sᵤ, "Sₗ" => Sₗ, "lats" => lat)
+
+end
+
+"""
+    function en4_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, Vector{Float64}};
+                        max_depth = -1000)
+Calculate the maximum static density difference, and other information from EN4 temperature
+salinity profiles. The function takes in a `Vector` of `String`s that are data files of
+`.nc` filetype. NCDatasets then reads them, aggregating over the appropriate dimension. Then
+required infromation is computed and passed to `Δρ_max`. All further required information is
+computed and the returned as a `Dict`.
+"""
+function en4_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, Vector{Float64}};
+                    max_depth = -1000)
 
 end
 
