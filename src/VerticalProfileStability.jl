@@ -1,6 +1,6 @@
 module VerticalProfileStability
 
-using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, CairoMakie, Reexport
+using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, CairoMakie, JLD2, Reexport
 
 @reexport using Rasters,
                 OceanRasterConversions,
@@ -8,7 +8,8 @@ using Rasters, OceanRasterConversions, GibbsSeaWater, Glob, CairoMakie, Reexport
                 Glob,
                 Dates,
                 CairoMakie,
-                NCDatasets
+                NCDatasets,
+                JLD2
 
 export
     ECCO_DATADIR,

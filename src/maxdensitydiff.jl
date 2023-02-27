@@ -2,9 +2,9 @@
 # vertical profile.
 module MaximumDensityDifference
 
-using Rasters, OceanRasterConversions, GibbsSeaWater, MAT
+using Rasters, OceanRasterConversions, GibbsSeaWater, MAT, NCDatasets
 
-export series_max_Δρ, series2vec, get_lats, argo_max_Δρ
+export series_max_Δρ, series2vec, get_lats, argo_max_Δρ, en4_max_Δρ
 
 """
     function Δρ_cab(Sₐ::Vector, Θ::Vector, p::Vector)
@@ -553,6 +553,57 @@ computed and the returned as a `Dict`.
 function en4_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, Vector{Float64}};
                     max_depth = -1000)
 
+    ds = NCDataset(data_files; aggdim = "N_PROF")
+    lat = ds["LATITUDE"][:]
+    lon = ds["LONGITUDE"][:]
+    θ = ds["POTM_CORRECTED"][:, :]
+    Sₚ = ds["PSAL_CORRECTED"][:, :]
+    z = -ds["DEPH_CORRECTED"][:, :]
+
+    Δρˢ, Δρᶜ = similar(lat, Union{Float64, Missing}), similar(lat, Union{Float64, Missing})
+    Θₗ, Θᵤ = similar(Δρˢ), similar(Δρˢ)
+    pₗ, pᵤ = similar(Δρˢ), similar(Δρˢ)
+    Sₗ, Sᵤ = similar(Δρˢ), similar(Δρˢ)
+
+    for i ∈ eachindex(lat)
+
+        profile_depths = nomissing(z[:, i], NaN)
+        find_1000 = findall(profile_depths .≥ max_depth)
+
+        if !isnothing(find_1000)
+
+            z_profile = nomissing(z[find_1000, i], NaN)
+            Sₚ_profile = nomissing(Sₚ[find_1000, i], NaN)
+            θ_profile = nomissing(θ[find_1000, i], NaN)
+            p = gsw_p_from_z.(z_profile, lat[i])
+            Sₐ = gsw_sa_from_sp.(Sₚ_profile, p, lon[i], lat[i])
+            Θ = gsw_ct_from_pt.(θ_profile, Sₐ)
+
+            if !isempty(Θ)
+                res = Δρ_max(Sₐ, Θ, p, ΔΘ_thres)
+                Δρᶜ[i] = res.Δρᶜ_max
+                Δρˢ[i] = res.Δρˢ_max
+                ul = res.upper_level
+                ll = res.lower_level
+                if ismissing(ul)
+                    Θᵤ[i], Θₗ[i] = ul, ll
+                    pᵤ[i], pₗ[i] = ul, ll
+                    Sᵤ[i], Sₗ[i] = ul, ll
+                else
+                    Θᵤ[i], Θₗ[i] = Θ[ul], Θ[ll]
+                    pᵤ[i], pₗ[i] = p[ul], p[ll]
+                    Sᵤ[i], Sₗ[i] = Sₐ[ul], Sₐ[ll]
+                end
+            end
+
+        end
+
+    end
+
+    find_nm = findall(.!ismissing.(Δρˢ))
+    return Dict("Δρˢ" => Δρˢ[find_nm], "Δρᶜ" => Δρᶜ[find_nm], "Θᵤ" => Θᵤ[find_nm],
+                "Θₗ" => Θₗ[find_nm], "pᵤ" => pᵤ[find_nm], "pₗ" => pₗ[find_nm],
+                "Sᵤ" => Sᵤ[find_nm], "Sₗ" => Sₗ[find_nm], "lats" => lat[find_nm])
 end
 
 end # module
