@@ -42,3 +42,26 @@ for ΔΘ ∈ ΔΘ_vals[1:2]
     run_model(; Sᵤ, Sᵣ, Sₗ, Tₗ, Tᵤ, savepath, num_ics)
 
 end
+
+## Initial conditions further apart, specifically midpoint between linearised density and
+#  isopycnal. To find these values need the gridded data that is used to plot the Fofonoff
+#  diagrams. Also no longer doing a stable IC (to left of linearised density).
+p_ref = 0
+num_ics = 2
+
+ΔΘ_vals = [0.5, 1.0, 2.0]
+Sₗ, Tₗ = 34.7, 0.5
+αₗ, βₗ = gsw_alpha(Sₗ, Tₗ, p_ref), gsw_beta(Sₗ, Tₗ, p_ref)
+for ΔΘ ∈ ΔΘ_vals[1:2]
+
+    Tᵤ = Tₗ - ΔΘ
+    Sᵤ = Sₗ - (αₗ / βₗ) * ΔΘ
+    Sᵣ = 0.5 * (Sᵤ #=+ salinity at Tᵤ on the isopycnal through (Sₗ, Tₗ)=#)
+    savepath = joinpath(sim_datadir, "initial_ΔΘ_$(ΔΘ)")
+    # mkdir(savepath)
+    # Run Isopycnal and linearised density about some deep water parcel in
+    # `Fofonoff_diagrams` to set up the axis and view the initial conditions
+    #scatter!(ax, [Sᵤ, S_critical, Sᵣ], Tᵤ .* ones(3))
+    run_model(; Sᵤ, Sᵣ, Sₗ, Tₗ, Tᵤ, savepath, num_ics)
+
+end
