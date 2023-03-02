@@ -109,6 +109,73 @@ save(joinpath(PLOTDIR, "ECCO", "Θ_inversion",
 ## Close data file
 close(EXTRACTED_DATA_INV)
 
+using StatsBase, LinearAlgebra
+
+ΔΘ_keys = keys(EXTRACTED_DATA_INV)
+bin_width = 0.01
+
+fig = Figure(size = (1200, 1200))
+ax = [Axis(fig[i, j];
+        xlabel = "Δρ (kgm⁻³)"
+        )
+      for i ∈ 1:2, j ∈ 1:2]
+less_thres = Vector{Float64}(undef, 4)
+over_thres = Vector{Float64}(undef, 4)
+
+for (i, key) ∈ enumerate(ΔΘ_keys)
+
+    Θₗ, Δρˢ = EXTRACTED_DATA_INV[key]["Θₗ"], EXTRACTED_DATA_INV[key]["Δρˢ"]
+    Δρ_thres = EXTRACTED_DATA_INV[key]["Δρ_thres"]
+
+    Δρ_thres_mean = mean(Δρ_thres)
+    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+
+    hist!(ax[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
+    vlines!(ax[i], Δρ_thres_mean; color = :black, linestyle = :dash,
+            label = "Δρ threshold for ΔΘ")
+    ax[i].title = "PDF for ΔΘ = $(ΔΘ_thres[i])"
+    hist_fit = fit(Histogram, Δρˢ, hist_edges)
+    hist_fit = normalize(hist_fit; mode = :pdf)
+
+    find_thres = findall(hist_edges .≤ Δρ_thres_mean)
+
+    # to average threshold
+    less_thres[i] = sum(hist_fit.weights[find_thres] .* bin_width)
+    # after average threshold
+    over_thres[i] = 1 - less_thres[i]
+end
+
+linkxaxes!(ax[1], ax[2])
+linkxaxes!(ax[3], ax[4])
+axislegend(ax[1]; position = :lt)
+fig
+less_thres
+
+## density or ecdf plot that shows all four on same figure
+fig2 = Figure(size = (500, 500))
+ax = Axis(fig2[1, 1];
+          title = "Empirical cumulative distribution for all ΔΘ's",
+          xlabel = "Δρ (kgm⁻³)")
+for (i, key) ∈ enumerate(ΔΘ_keys)
+
+    Θₗ, Δρˢ = collect(skipmissing(EXTRACTED_DATA_INV[key]["Θₗ"])),
+              collect(skipmissing(EXTRACTED_DATA_INV[key]["Δρˢ"]))
+
+    # density!(ax, Δρˢ; normalization = :pdf, color = (colours[i], 0.3),
+    #          strokecolor = colours[i], strokearound = true, strokewidth = 3,
+    #          label = "ΔΘ = $(ΔΘ_thres[i])")
+   ecdfplot!(ax, Δρˢ; label = "ΔΘ = $(ΔΘ_thres[i])", color = colours[i])
+end
+vlines!(ax, 0; label = "Static instability", color = :black, linestyle = :dash)
+axislegend(ax; position = :lt)
+fig2
+
+## zoom in
+xlims!(ax, -1, 0.01)
+fig2
+
+## Below here maybe not that useful.
+
 ## Statistics
 ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(EXTRACTED_DATA_INV)
 
@@ -117,6 +184,7 @@ close(EXTRACTED_DATA_INV)
 Δρˢ = collect(skipmissing(EXTRACTED_DATA_INV[ΔΘ_3]["Δρˢ"]))
 lats = EXTRACTED_DATA_INV[ΔΘ_3]["lats"]
 Δρ_thres = EXTRACTED_DATA_INV[ΔΘ_3]["Δρ_thres"]
+mean(Δρ_thres)
 Θ_lower_range = EXTRACTED_DATA_INV[ΔΘ_3]["Θ_lower_range"]
 
 ## Histogram

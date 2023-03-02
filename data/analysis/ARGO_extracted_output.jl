@@ -18,7 +18,7 @@ ax = Axis(fig[1, 1];
         title = "Maximum static density difference between two vertically\nspaced levels of a profile against temperature of lower level",
         ylabel = "Δρ (kgm⁻³)")
 ylims!(ax, ylimits)
-colors = [:blue, :orange, :red, :green]
+colours = [:blue, :orange, :red, :green]
 for (i, key) ∈ enumerate(keys(ARGO_OUTPUT))
 
     Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
@@ -113,7 +113,8 @@ fig
 
 ## Histogram
 # This is lazy as I have just used the mean Δρ_thres, better would be to bin by temperature
-# and count how many exceed the density threshold in a given bin?
+# and count how many exceed the density threshold in a given bin? Have done something
+# similar in the `ECCO_invertedΔΘ_extracted.jl` script.
 using StatsBase, LinearAlgebra
 
 ΔΘ_keys = keys(ARGO_OUTPUT)
@@ -126,6 +127,7 @@ ax = [Axis(fig[i, j];
       for i ∈ 1:2, j ∈ 1:2]
 less_thres = Vector{Float64}(undef, 4)
 over_thres = Vector{Float64}(undef, 4)
+
 for (i, key) ∈ enumerate(ΔΘ_keys)
     Θₗ = collect(skipmissing(ARGO_OUTPUT[key]["Θₗ"]))
     Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
@@ -142,8 +144,9 @@ for (i, key) ∈ enumerate(ΔΘ_keys)
     Δρ_thres_mean = mean(Δρ_thres)
     hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
 
-    hist!(ax[i], Δρˢ; bins = hist_edges, normalization = :pdf)
-    vlines!(ax[i], Δρ_thres_mean; color = :red)
+    hist!(ax[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
+    vlines!(ax[i], Δρ_thres_mean; color = :black, linestyle = :dash,
+            label = "Δρ threshold for ΔΘ")
     ax[i].title = "PDF for ΔΘ = $(ΔΘ_thres[i])"
     hist_fit = fit(Histogram, Δρˢ, hist_edges)
     hist_fit = normalize(hist_fit; mode = :pdf)
@@ -155,7 +158,31 @@ for (i, key) ∈ enumerate(ΔΘ_keys)
     # after average threshold
     over_thres[i] = 1 - less_thres[i]
 end
+linkxaxes!(ax[1], ax[2])
+linkxaxes!(ax[3], ax[4])
+axislegend(ax[1]; position = :lt)
 fig
 less_thres
+
+## density or ecdf plot that shows all four on same figure
+fig2 = Figure(size = (500, 500))
+ax = Axis(fig2[1, 1];
+          title = "Empirical cumulative distribution for all ΔΘ's",
+          xlabel = "Δρ (kgm⁻³)")
+for (i, key) ∈ enumerate(ΔΘ_keys)
+    Θₗ = collect(skipmissing(ARGO_OUTPUT[key]["Θₗ"]))
+    Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
+    find_inverted = findall(Θᵤ .< Θₗ)
+    Δρˢ = collect(skipmissing(ARGO_OUTPUT[key]["Δρˢ"][find_inverted]))
+
+    # density!(ax, Δρˢ; normalization = :pdf, color = (colours[i], 0.3),
+    #          strokecolor = colours[i], strokearound = true, strokewidth = 3,
+    #          label = "ΔΘ = $(ΔΘ_thres[i])")
+   ecdfplot!(ax, Δρˢ; label = "ΔΘ = $(ΔΘ_thres[i])", color = colours[i])
+end
+vlines!(ax, 0; label = "Static instability", color = :black, linestyle = :dash)
+axislegend(ax; position = :lt)
+fig2
+
 ##
 close(ARGO_OUTPUT)
