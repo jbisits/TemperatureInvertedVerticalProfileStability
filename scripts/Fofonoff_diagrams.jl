@@ -156,7 +156,7 @@ T_grid = T' .* ones(length(T))
 S = range(34.4, 40, 5000)
 S_grid = S .* ones(length(S))'
 
-p_ref = 0 #reference pressure
+p_ref = 500 #reference pressure
 freezing_pt = gsw_ct_freezing.(S, p_ref, 1)
 
 ρ = gsw_rho.(S_grid, T_grid, p_ref)
@@ -217,14 +217,14 @@ ax = Axis(fig2[1, 1];
           xlabel = "Θ (ᵒC) of lower level",
           xaxisposition = :top,
           ylabel = "Δρ_thres (kgm⁻³)",
-          title = "Δρ threshold for ΔΘ threshold = $δΘ ᵒC against temperature of lower level"
+          title = "Δρ threshold for multiple ΔΘ values against temperature of lower level"
           )
 #lines!(ax, Θ, Δρ_thres_lower; label = "Upper water parcel colder")
 #series!(ax, Θ, Δρ_thres_upper'; labels = string.(δΘ) .* "ᵒC")
-series!(ax, Θ, Δρ_thres_lower'; labels = string.(δΘ) .* "ᵒC")
+series!(ax, Θ, Δρ_thres_lower'; labels = "ΔΘ = " .* string.(δΘ) .* "ᵒC")
 axislegend(ax; position = :rb)
 fig2
-#save(joinpath(plotdir, "Δρ_thres_multiple_deg.png"), fig2)
+#save(joinpath(PLOTDIR, "Δρ_thres_multiple_deg.png"), fig2)
 
 ## Δρ threshold using salinity
 Sₐ = LinRange(33, 39, 100)
