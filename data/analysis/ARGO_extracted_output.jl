@@ -1,7 +1,7 @@
 using .VerticalProfileStability
-using JLD2, Statistics
+using Statistics
 
-const ARGO_OUTPUT = jldopen(joinpath(@__DIR__, "ARGO_extracted.jld2"))
+ARGO_OUTPUT = jldopen(joinpath(@__DIR__, "ARGO_extracted.jld2"))
 
 ## Temperature inverted plots
 # set ylimits, much faster to extract then plot data then plot and use lims! on axis.
@@ -110,4 +110,52 @@ fig
 # lin_elements = [LineElement(color = col) for col ∈ colors]
 # leg_labels = "ΔΘ = " .* string.([0.5, 1.0, 2.0, 3.0]) .* "°C"
 # Legend(fig[3, :], lin_elements, leg_labels, "Δρ threshold for", orientation = :horizontal)
+
+## Histogram
+# This is lazy as I have just used the mean Δρ_thres, better would be to bin by temperature
+# and count how many exceed the density threshold in a given bin?
+using StatsBase, LinearAlgebra
+
+ΔΘ_keys = keys(ARGO_OUTPUT)
+bin_width = 0.01
+
+fig = Figure(size = (1200, 1200))
+ax = [Axis(fig[i, j];
+        xlabel = "Δρ (kgm⁻³)"
+        )
+      for i ∈ 1:2, j ∈ 1:2]
+less_thres = Vector{Float64}(undef, 4)
+over_thres = Vector{Float64}(undef, 4)
+for (i, key) ∈ enumerate(ΔΘ_keys)
+    Θₗ = collect(skipmissing(ARGO_OUTPUT[key]["Θₗ"]))
+    Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
+    find_inverted = findall(Θᵤ .< Θₗ)
+    Δρˢ = collect(skipmissing(ARGO_OUTPUT[key]["Δρˢ"][find_inverted]))
+    Sₗ_mean = mean(collect(skipmissing(ARGO_OUTPUT[key]["Sₗ"][find_inverted])))
+    pₘ = 0.5 .* (collect(skipmissing(ARGO_OUTPUT[key]["pₗ"][find_inverted])) .+
+                collect(skipmissing(ARGO_OUTPUT[key]["pᵤ"][find_inverted])))
+    pₘ_mean = mean(pₘ)
+    αₗ = gsw_alpha.(Sₗ_mean, Θₗ_range, pₘ_mean)
+    βₗ = gsw_beta.(Sₗ_mean, Θₗ_range, pₘ_mean)
+    Δρ_thres = @. gsw_rho.(Sₗ_mean - (αₗ / βₗ) * ΔΘ_thres[i], Θₗ_range - ΔΘ_thres[i],
+                        pₘ_mean) - gsw_rho.(Sₗ_mean, Θₗ_range, pₘ_mean)
+    Δρ_thres_mean = mean(Δρ_thres)
+    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+
+    hist!(ax[i], Δρˢ; bins = hist_edges, normalization = :pdf)
+    vlines!(ax[i], Δρ_thres_mean; color = :red)
+    ax[i].title = "PDF for ΔΘ = $(ΔΘ_thres[i])"
+    hist_fit = fit(Histogram, Δρˢ, hist_edges)
+    hist_fit = normalize(hist_fit; mode = :pdf)
+
+    find_thres = findall(hist_edges .≤ Δρ_thres_mean)
+
+    # to average threshold
+    less_thres[i] = sum(hist_fit.weights[find_thres] .* bin_width)
+    # after average threshold
+    over_thres[i] = 1 - less_thres[i]
+end
+fig
+less_thres
+##
 close(ARGO_OUTPUT)
