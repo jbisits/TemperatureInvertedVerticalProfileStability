@@ -54,10 +54,13 @@ S_linear = range(34.514, S[end]; length = length(iso_S))
 Θ_linear = @. Θₗ + m * (S_linear - Sₗ)
 
 ic_colour = get(ColorSchemes.dense, range(0.25, 1, length = 3))
-# ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics * 3)))
-# ic_colour = reshape(ic_colour, 3, 3)
+ic_colour_stability = get(ColorSchemes.dense, range(0.25, 1, length = 3))
+ic_colour = get(ColorSchemes.haline, range(0.25, 1, length = 3))
+ic_colour = get(ColorSchemes.haline, range(0, 1, length = num_ics * 3))
+ic_colour = reshape(ic_colour, 2, 3)
 
-ΔΘ_colour = [:blue, :orange, :green]
+#ΔΘ_colour = [:blue, :orange, :green]
+ΔΘ_colour = get(ColorSchemes.thermal, range(0, 0.8, length = 4))
 ic_plot = Figure(resolution = (1000, 1000))
 xlabs = ["Temperature (∘C)" "Salinity (g/kg)"; "Inital ΔΘ (°C) at interface " "Salinity (g/kg)"]
 ylabs = ["Depth (m)" "Depth (m)"; "Δρ (kgm⁻³)" "Temperature (°C)"]
@@ -129,11 +132,12 @@ for (j, sim) ∈ enumerate(simulations)
     lines!(ax[1, 2], range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length=2), Δρ_thres;
           label = "Δρ threshold for initial ΔΘ = $(ΔΘ_thres_vals[j])",
           color = ΔΘ_colour[j])
-    scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 2), Δρ_static; color = ic_colour[1:2])
+    scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 2), Δρ_static;
+             color = ic_colour_stability[1:2])
    if j == 3
     axislegend(ax[1, 1]; position = :lb, orientation = :horizontal, nbanks = 3)
     lines!(ax[1, 2], ΔΘ_thres_vals, fill(0, length(ΔΘ_thres_vals));
-           color = ic_colour[3], label = "Static instability threshold")
+           color = ic_colour_stability[3], label = "Static instability threshold")
     axislegend(ax[1, 2]; position = :lb, orientation = :horizontal, nbanks = 4)
     axislegend(ax[2, 1]; position = :lb, orientation = :horizontal, nbanks = 2)
    end

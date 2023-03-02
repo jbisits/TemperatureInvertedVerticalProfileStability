@@ -1,8 +1,8 @@
 using .VerticalProfileStability
 using JLD2, Statistics, ColorSchemes
 
-const EXTRACTED_DATA_INV = jldopen(joinpath(@__DIR__,
-                                            "ECCO_invertedΔΘ_extracted_data.jld2"))
+const EXTRACTED_DATA_INV = joinpath(@__DIR__, "ECCO_invertedΔΘ_extracted_data.jld2")
+inv_data = jldopen(EXTRACTED_DATA_INV)
 
 ## Plots
 # set ylimits, much faster to extract then plot data then plot and use lims! on axis.
@@ -20,15 +20,15 @@ xlims!(ax, xlimits)
 ylims!(ax, ylimits)
 #colours = [:blue, :orange, :red, :green]
 colours = get(ColorSchemes.thermal, range(0, 0.8, length = 4))
-for (i, key) ∈ enumerate(keys(EXTRACTED_DATA_INV))
+for (i, key) ∈ enumerate(keys(inv_data))
 
-    Θₗ, Δρˢ = EXTRACTED_DATA_INV[key]["Θₗ"], EXTRACTED_DATA_INV[key]["Δρˢ"]
+    Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
     find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
-    lats = EXTRACTED_DATA_INV[key]["lats"][find]
-    Δρ_thres = EXTRACTED_DATA_INV[key]["Δρ_thres"]
-    ΔΘ_range = EXTRACTED_DATA_INV[key]["ΔΘ_range"]
-    Θ_lower_range = EXTRACTED_DATA_INV[key]["Θ_lower_range"]
+    lats = inv_data[key]["lats"][find]
+    Δρ_thres = inv_data[key]["Δρ_thres"]
+    ΔΘ_range = inv_data[key]["ΔΘ_range"]
+    Θ_lower_range = inv_data[key]["Θ_lower_range"]
 
     sc = scatter!(ax, Θₗ, Δρˢ; color = colours[i], markersize = 4)
     lines!(ax, Θ_lower_range, Δρ_thres; color = colours[i],
@@ -42,7 +42,7 @@ save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "2007_ΔΘ_thres_all.png"), fig)
 
 ## Full plot
 # Temperature colourbar is wrong here, need a rethink for this and the pressure difference
-keys_mat = reshape(keys(EXTRACTED_DATA_INV), 2, 2)
+keys_mat = reshape(keys(inv_data), 2, 2)
 colourbar_vars = ("lats", "Δp_vals", "ΔΘ_vals")
 colourbar_col = (:viridis, :batlow, :thermal)
 # These have been found by looking at the subset for each key in the dictionary and taking
@@ -72,10 +72,10 @@ fig
 ## Plot
 for (i, key) ∈ enumerate(keys_mat)
 
-    Θₗ, Δρˢ = EXTRACTED_DATA_INV[key]["Θₗ"], EXTRACTED_DATA_INV[key]["Δρˢ"]
+    Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
     find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
-    plot_var = round.(EXTRACTED_DATA_INV[key][colourbar_vars[choose_var]][find]; digits = 1)
+    plot_var = round.(inv_data[key][colourbar_vars[choose_var]][find]; digits = 1)
     cbar_lab =  if colourbar_vars[choose_var] == "lats"
                    "Latitude (°N)"
                 elseif colourbar_vars[choose_var] == "Δp_vals"
@@ -83,9 +83,9 @@ for (i, key) ∈ enumerate(keys_mat)
                 elseif colourbar_vars[choose_var] == "ΔΘ_vals"
                     "ΔΘ (°C)"
                 end
-    Δρ_thres = EXTRACTED_DATA_INV[key]["Δρ_thres"]
-    ΔΘ_range = EXTRACTED_DATA_INV[key]["ΔΘ_range"]
-    Θ_lower_range = EXTRACTED_DATA_INV[key]["Θ_lower_range"]
+    Δρ_thres = inv_data[key]["Δρ_thres"]
+    ΔΘ_range = inv_data[key]["ΔΘ_range"]
+    Θ_lower_range = inv_data[key]["Θ_lower_range"]
 
     sc = scatter!(ax[i], Θₗ, Δρˢ;
                   markersize = 4,
@@ -108,11 +108,11 @@ save(joinpath(PLOTDIR, "ECCO", "Θ_inversion",
               "2007_mult_ΔΘ_thres_$(colourbar_vars[choose_var]).png"), fig)
 
 ## Close data file
-close(EXTRACTED_DATA_INV)
+close(inv_data)
 
 using StatsBase, LinearAlgebra
 
-ΔΘ_keys = keys(EXTRACTED_DATA_INV)
+ΔΘ_keys = keys(inv_data)
 bin_width = 0.01
 
 fig = Figure(size = (1200, 1200))
@@ -125,8 +125,8 @@ over_thres = Vector{Float64}(undef, 4)
 
 for (i, key) ∈ enumerate(ΔΘ_keys)
 
-    Θₗ, Δρˢ = EXTRACTED_DATA_INV[key]["Θₗ"], EXTRACTED_DATA_INV[key]["Δρˢ"]
-    Δρ_thres = EXTRACTED_DATA_INV[key]["Δρ_thres"]
+    Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
+    Δρ_thres = inv_data[key]["Δρ_thres"]
 
     Δρ_thres_mean = mean(Δρ_thres)
     hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
@@ -164,10 +164,10 @@ ax = Axis(fig2[1, 1];
           xlabel = "Δρ (kgm⁻³)")
 for (i, key) ∈ enumerate(ΔΘ_keys)
 
-    Θₗ, Δρˢ = collect(skipmissing(EXTRACTED_DATA_INV[key]["Θₗ"])),
-              collect(skipmissing(EXTRACTED_DATA_INV[key]["Δρˢ"]))
+    Θₗ, Δρˢ = collect(skipmissing(inv_data[key]["Θₗ"])),
+              collect(skipmissing(inv_data[key]["Δρˢ"]))
 
-    Δρ_thres = EXTRACTED_DATA_INV[key]["Δρ_thres"]
+    Δρ_thres = inv_data[key]["Δρ_thres"]
     Δρ_thres_mean = mean(Δρ_thres)
     # density!(ax, Δρˢ; normalization = :pdf, color = (colours[i], 0.3),
     #          strokecolor = colours[i], strokearound = true, strokewidth = 3,
@@ -186,15 +186,15 @@ fig2
 ## Below here maybe not that useful.
 
 ## Statistics
-ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(EXTRACTED_DATA_INV)
+ΔΘ_0_5, ΔΘ_1, ΔΘ_2, ΔΘ_3 = keys(inv_data)
 
 ## ΔΘ = 2 threshold
-Θₗ = collect(skipmissing(EXTRACTED_DATA_INV[ΔΘ_3]["Θₗ"]))
-Δρˢ = collect(skipmissing(EXTRACTED_DATA_INV[ΔΘ_3]["Δρˢ"]))
-lats = EXTRACTED_DATA_INV[ΔΘ_3]["lats"]
-Δρ_thres = EXTRACTED_DATA_INV[ΔΘ_3]["Δρ_thres"]
+Θₗ = collect(skipmissing(inv_data[ΔΘ_3]["Θₗ"]))
+Δρˢ = collect(skipmissing(inv_data[ΔΘ_3]["Δρˢ"]))
+lats = inv_data[ΔΘ_3]["lats"]
+Δρ_thres = inv_data[ΔΘ_3]["Δρ_thres"]
 mean(Δρ_thres)
-Θ_lower_range = EXTRACTED_DATA_INV[ΔΘ_3]["Θ_lower_range"]
+Θ_lower_range = inv_data[ΔΘ_3]["Θ_lower_range"]
 
 ## Histogram
 find_ = findall(Θₗ .≤ 10)
@@ -231,7 +231,7 @@ length(findall(Δρˢ_data[find] .> Δρ_thres[67]))
 
 ############################################################################################
 ## Individual plots if needed
-for (i, key) ∈ enumerate(keys(EXTRACTED_DATA_INV))
+for (i, key) ∈ enumerate(keys(inv_data))
 
     @info "Generating plot for $(key)"
     fig = Figure(size = (600, 600))
@@ -244,15 +244,15 @@ for (i, key) ∈ enumerate(keys(EXTRACTED_DATA_INV))
     xlims!(ax, xlimits)
     ylims!(ax, ylimits)
 
-    Θₗ, Δρˢ = EXTRACTED_DATA_INV[key]["Θₗ"], EXTRACTED_DATA_INV[key]["Δρˢ"]
+    Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
     find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
-    lats = EXTRACTED_DATA_INV[key]["lats"][find]
-    #ΔΘ = round.(EXTRACTED_DATA_INV[key]["ΔΘ_vals"][find]; digits = 1)
-    #Δp = round.(Int, EXTRACTED_DATA_INV[key]["Δp_vals"][find])
-    Δρ_thres = EXTRACTED_DATA_INV[key]["Δρ_thres"]
-    ΔΘ_range = EXTRACTED_DATA_INV[key]["ΔΘ_range"]
-    Θ_lower_range = EXTRACTED_DATA_INV[key]["Θ_lower_range"]
+    lats = inv_data[key]["lats"][find]
+    #ΔΘ = round.(inv_data[key]["ΔΘ_vals"][find]; digits = 1)
+    #Δp = round.(Int, inv_data[key]["Δp_vals"][find])
+    Δρ_thres = inv_data[key]["Δρ_thres"]
+    ΔΘ_range = inv_data[key]["ΔΘ_range"]
+    Θ_lower_range = inv_data[key]["Θ_lower_range"]
 
     sc = scatter!(ax, Θₗ, Δρˢ; color = lats, markersize = 4)
     lines!(ax, Θ_lower_range, Δρ_thres; color = :red,
@@ -266,3 +266,4 @@ for (i, key) ∈ enumerate(keys(EXTRACTED_DATA_INV))
     @info "Saving file"
     save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "2007_ΔΘ_thres_$(ΔΘ_range).png"), fig)
 end
+close(inv_data)

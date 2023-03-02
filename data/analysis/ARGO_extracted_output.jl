@@ -1,7 +1,8 @@
 using .VerticalProfileStability
 using Statistics
 
-ARGO_OUTPUT = jldopen(joinpath(@__DIR__, "ARGO_extracted.jld2"))
+const ARGO_OUTPUT = joinpath(@__DIR__, "ARGO_extracted.jld2")
+argo_data = jldopen(ARGO_OUTPUT)
 
 ## Temperature inverted plots
 # set ylimits, much faster to extract then plot data then plot and use lims! on axis.
@@ -19,18 +20,18 @@ ax = Axis(fig[1, 1];
         ylabel = "Δρ (kgm⁻³)")
 ylims!(ax, ylimits)
 colours = [:blue, :orange, :red, :green]
-for (i, key) ∈ enumerate(keys(ARGO_OUTPUT))
+for (i, key) ∈ enumerate(keys(argo_data))
 
-    Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
-    Θₗ = collect(skipmissing(ARGO_OUTPUT[key]["Θₗ"]))
+    Θᵤ = collect(skipmissing(argo_data[key]["Θᵤ"]))
+    Θₗ = collect(skipmissing(argo_data[key]["Θₗ"]))
     find_inverted = findall(Θᵤ .< Θₗ)
-    Δρˢ = collect(skipmissing(ARGO_OUTPUT[key]["Δρˢ"]))
+    Δρˢ = collect(skipmissing(argo_data[key]["Δρˢ"]))
     sc = scatter!(ax, Θₗ[find_inverted], Δρˢ[find_inverted];
                   color = colors[i], markersize = 5)
 
-    Sₗ_mean = mean(collect(skipmissing(ARGO_OUTPUT[key]["Sₗ"][find_inverted])))
-    pₘ = 0.5 .* (collect(skipmissing(ARGO_OUTPUT[key]["pₗ"][find_inverted])) .+
-                 collect(skipmissing(ARGO_OUTPUT[key]["pᵤ"][find_inverted])))
+    Sₗ_mean = mean(collect(skipmissing(argo_data[key]["Sₗ"][find_inverted])))
+    pₘ = 0.5 .* (collect(skipmissing(argo_data[key]["pₗ"][find_inverted])) .+
+                 collect(skipmissing(argo_data[key]["pᵤ"][find_inverted])))
     pₘ_mean = mean(pₘ)
     αₗ = gsw_alpha.(Sₗ_mean, Θₗ_range, pₘ_mean)
     βₗ = gsw_beta.(Sₗ_mean, Θₗ_range, pₘ_mean)
@@ -49,7 +50,7 @@ fig
 save(joinpath(PLOTDIR, "ARGO", "ΔΘ_thres_all_zoom.png"), fig)
 ## Full plot
 # Temperature colourbar is wrong here, need a rethink for this and the pressure difference
-keys_mat = reshape(keys(ARGO_OUTPUT), 2, 2)
+keys_mat = reshape(keys(argo_data), 2, 2)
 colourbar_vars = ("lats", "Δp", "ΔΘ")
 colourbar_col = (:viridis, :batlow, :thermal)
 # These have been found by looking at the subset for each key in the dictionary and taking
@@ -78,12 +79,12 @@ fig
 ## Plot
 for (i, key) ∈ enumerate(keys_mat)
 
-    Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
-    Θₗ = collect(skipmissing(ARGO_OUTPUT[key]["Θₗ"]))
-    Δρˢ = collect(skipmissing(ARGO_OUTPUT[key]["Δρˢ"]))
-    plot_var = round.(ARGO_OUTPUT[key][colourbar_vars[choose_var]][find]; digits = 1)
+    Θᵤ = collect(skipmissing(argo_data[key]["Θᵤ"]))
+    Θₗ = collect(skipmissing(argo_data[key]["Θₗ"]))
+    Δρˢ = collect(skipmissing(argo_data[key]["Δρˢ"]))
+    plot_var = round.(argo_data[key][colourbar_vars[choose_var]][find]; digits = 1)
     find_inverted = findall(Θᵤ .< Θₗ)
-    # plot_var = round.(ARGO_OUTPUT[key][colourbar_vars[choose_var]][find_inverted]; digits = 1)
+    # plot_var = round.(argo_data[key][colourbar_vars[choose_var]][find_inverted]; digits = 1)
     cbar_lab =  if colourbar_vars[choose_var] == "lats"
                    "Latitude (°N)"
                 elseif colourbar_vars[choose_var] == "Δp"
@@ -117,7 +118,7 @@ fig
 # similar in the `ECCO_invertedΔΘ_extracted.jl` script.
 using StatsBase, LinearAlgebra
 
-ΔΘ_keys = keys(ARGO_OUTPUT)
+ΔΘ_keys = keys(argo_data)
 bin_width = 0.01
 
 fig = Figure(size = (1200, 1200))
@@ -129,13 +130,13 @@ less_thres = Vector{Float64}(undef, 4)
 over_thres = Vector{Float64}(undef, 4)
 
 for (i, key) ∈ enumerate(ΔΘ_keys)
-    Θₗ = collect(skipmissing(ARGO_OUTPUT[key]["Θₗ"]))
-    Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
+    Θₗ = collect(skipmissing(argo_data[key]["Θₗ"]))
+    Θᵤ = collect(skipmissing(argo_data[key]["Θᵤ"]))
     find_inverted = findall(Θᵤ .< Θₗ)
-    Δρˢ = collect(skipmissing(ARGO_OUTPUT[key]["Δρˢ"][find_inverted]))
-    Sₗ_mean = mean(collect(skipmissing(ARGO_OUTPUT[key]["Sₗ"][find_inverted])))
-    pₘ = 0.5 .* (collect(skipmissing(ARGO_OUTPUT[key]["pₗ"][find_inverted])) .+
-                collect(skipmissing(ARGO_OUTPUT[key]["pᵤ"][find_inverted])))
+    Δρˢ = collect(skipmissing(argo_data[key]["Δρˢ"][find_inverted]))
+    Sₗ_mean = mean(collect(skipmissing(argo_data[key]["Sₗ"][find_inverted])))
+    pₘ = 0.5 .* (collect(skipmissing(argo_data[key]["pₗ"][find_inverted])) .+
+                collect(skipmissing(argo_data[key]["pᵤ"][find_inverted])))
     pₘ_mean = mean(pₘ)
     αₗ = gsw_alpha.(Sₗ_mean, Θₗ_range, pₘ_mean)
     βₗ = gsw_beta.(Sₗ_mean, Θₗ_range, pₘ_mean)
@@ -170,10 +171,10 @@ ax = Axis(fig2[1, 1];
           title = "Empirical cumulative distribution for all ΔΘ's",
           xlabel = "Δρ (kgm⁻³)")
 for (i, key) ∈ enumerate(ΔΘ_keys)
-    Θₗ = collect(skipmissing(ARGO_OUTPUT[key]["Θₗ"]))
-    Θᵤ = collect(skipmissing(ARGO_OUTPUT[key]["Θᵤ"]))
+    Θₗ = collect(skipmissing(argo_data[key]["Θₗ"]))
+    Θᵤ = collect(skipmissing(argo_data[key]["Θᵤ"]))
     find_inverted = findall(Θᵤ .< Θₗ)
-    Δρˢ = collect(skipmissing(ARGO_OUTPUT[key]["Δρˢ"][find_inverted]))
+    Δρˢ = collect(skipmissing(argo_data[key]["Δρˢ"][find_inverted]))
 
     # density!(ax, Δρˢ; normalization = :pdf, color = (colours[i], 0.3),
     #          strokecolor = colours[i], strokearound = true, strokewidth = 3,
@@ -185,4 +186,4 @@ axislegend(ax; position = :lt)
 fig2
 
 ##
-close(ARGO_OUTPUT)
+close(argo_data)
