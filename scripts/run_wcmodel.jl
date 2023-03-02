@@ -52,16 +52,18 @@ num_ics = 2
 ΔΘ_vals = [0.5, 1.0, 2.0]
 Sₗ, Tₗ = 34.7, 0.5
 αₗ, βₗ = gsw_alpha(Sₗ, Tₗ, p_ref), gsw_beta(Sₗ, Tₗ, p_ref)
-for ΔΘ ∈ ΔΘ_vals[1:2]
+
+for ΔΘ ∈ ΔΘ_vals
 
     Tᵤ = Tₗ - ΔΘ
     Sᵤ = Sₗ - (αₗ / βₗ) * ΔΘ
-    Sᵣ = 0.5 * (Sᵤ #=+ salinity at Tᵤ on the isopycnal through (Sₗ, Tₗ)=#)
-    savepath = joinpath(sim_datadir, "initial_ΔΘ_$(ΔΘ)")
-    # mkdir(savepath)
-    # Run Isopycnal and linearised density about some deep water parcel in
-    # `Fofonoff_diagrams` to set up the axis and view the initial conditions
-    #scatter!(ax, [Sᵤ, S_critical, Sᵣ], Tᵤ .* ones(3))
+    find_Θ = findfirst(Θ .≥ Tₗ - ΔΘ)
+    find_S = findfirst(ρ[:, find_Θ] .≥ lower_isopycnal)
+    Sᵣ = 0.5 * (Sᵤ + S[find_S])
+    savepath = joinpath(SIM_DATADIR, "initial_ΔΘ_$(ΔΘ)_mu") # mu = more unstable
+    mkdir(savepath)
+    # Run `schematic.jl` to setup the axis on which to check these
+    # scatter!(ax2, [Sᵤ, Sᵣ], Tᵤ .* ones(2))
     run_model(; Sᵤ, Sᵣ, Sₗ, Tₗ, Tᵤ, savepath, num_ics)
 
 end

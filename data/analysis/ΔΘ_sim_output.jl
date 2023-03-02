@@ -4,7 +4,7 @@ using .VerticalProfileStability
 ############################################################################################
 ## Choose which simulation
 ############################################################################################
-simulations = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0")
+simulations = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0") .* "_mu"
 sim_num = 3 # Change this to look at other simulations
 sim_output = joinpath(SIM_DATADIR, simulations[sim_num])
 
@@ -28,34 +28,35 @@ p_ref = 0
 S₀, T₀ = [S_ts[:, 1, i] for i ∈ 1:length(S_ts[1, 1, :])],
          [T_ts[:, 1, i] for i ∈ 1:length(T_ts[1, 1, :])]
 sal_ic_vals_string = string.(round.([S₀[i][end] for i ∈ 1:num_ics]; digits = 3))
-
+ΔΘ_thres_vals = [0.5, 1.0, 2.0]
 ############################################################################################
 ## Initial conditions for the simulation
 ############################################################################################
 
 # Axis and constant setups
-Θ_range = (-2, 1)
-T = range(Θᵤ - 0.25, Θₗ + 0.25, 200)
-T_grid = T' .* ones(length(T))
-S = range(S₀[1][end] - 0.01, 34.71, 200)
+
+##
+Θ = range(-2, 3, 1000)
+Θ_grid = Θ' .* ones(length(Θ))
+S = range(34.54, 34.75, 1000)
 S_grid = S .* ones(length(S))'
 
-ρ = gsw_rho.(S_grid, T_grid, p_ref)
+p_ref = 0.0 #reference pressure
+ρ = gsw_rho.(S_grid, Θ_grid, p_ref)
 
+Sₗ, Θₗ = 34.7,  0.5
 lower_isopycnal = gsw_rho(Sₗ, Θₗ, p_ref)
-
 αₗ = gsw_alpha(Sₗ, Θₗ, p_ref)
 βₗ = gsw_beta(Sₗ, Θₗ, p_ref)
 m = βₗ / αₗ
 
-tang_length = 7:findfirst(S .> Sₗ)
-S_tangent = S[tang_length]
-tangent = @. Θₗ + m * (S_tangent - Sₗ)
+S_linear = range(34.514, S[end]; length = length(iso_S))
+Θ_linear = @. Θₗ + m * (S_linear - Sₗ)
 
-ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics)))
+ic_colour = get(ColorSchemes.dense, range(0.25, 1, length = 3))
+# ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics * 3)))
+# ic_colour = reshape(ic_colour, 3, 3)
 
-ic_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics * 3)))
-ic_colour = reshape(ic_colour, 3, 3)
 ΔΘ_colour = [:blue, :orange, :green]
 ic_plot = Figure(resolution = (1000, 1000))
 xlabs = ["Temperature (∘C)" "Salinity (g/kg)"; "Inital ΔΘ (°C) at interface " "Salinity (g/kg)"]
@@ -70,16 +71,17 @@ ax = [Axis(ic_plot[j, i],
 linkyaxes!(ax[1, 1], ax[2, 1])
 linkxaxes!(ax[2, 1], ax[2, 2])
 # Fofonoff diagram
-contour!(ax[2, 2], S, T, ρ,
-        color = :black,
+contour!(ax[2, 2], S, Θ, ρ;
+        label = L"Isopycnal through $(S^{*},~\Theta^{*})$",
+        color = density_grad[2],
         linewidth = 2,
-        levels = [lower_isopycnal],
-        label = "Isopycnal (1027.71)")
-lines!(ax[2, 2], S_tangent, tangent; color = :red,
-       label = "Linearised density about\ndeep water mass")
-scatter!(ax[2, 2], [Sₗ], [Θₗ], color = :red, label = "Deep water mass")
+        levels = [lower_isopycnal])
+lines!(ax[2, 2], S_linear, Θ_linear; color = density_grad[1], linewidth = 2,
+       label = L"Linearised density at $(S^{*},~\Theta^{*})$")
+scatter!(ax[2, 2], [Sₗ], [Θₗ], color = density_grad[2], label = "Deep water mass")
 
 ic_plot
+
 ## Plotting
 for (j, sim) ∈ enumerate(simulations)
     sim_output_ = joinpath(SIM_DATADIR, sim)
@@ -98,7 +100,7 @@ for (j, sim) ∈ enumerate(simulations)
 
     # Salinity depth
     for i ∈ 1:num_ics
-        lines!(ax[2, 1], S₀_[i], z, color = ic_colour[i, j], label = sal_ic_vals_string_[i])
+        lines!(ax[2, 1], S₀_[i], z, color = ic_colour[i], label = sal_ic_vals_string_[i])
     end
     # Temperature depth
     Θᵤ_array_ = fill(Θᵤ_, num_ics)
@@ -108,10 +110,10 @@ for (j, sim) ∈ enumerate(simulations)
             color = ΔΘ_colour[j])
     # Salinity on Fofonoff diagram
     scatter!(ax[2, 2], [S₀_[i][end] for i ∈ 1:num_ics], Θᵤ_array_;
-            color = ic_colour[:, j], markersize = 6)
-    if j == 1
-        axislegend(ax[2, 2], position = :lt)
-    end
+            color = ic_colour[1:2], markersize = 6)
+    # if j == 1
+    #     axislegend(ax[2, 2], position = :lt)
+    # end
     Θₗ_ = [T_ts_[80, 1, i] for i ∈ 1:num_ics]
     Sₗ_ = [S_ts_[80, 1, i] for i ∈ 1:num_ics]
     Θᵤ_ = [T_ts_[81, 1, i] for i ∈ 1:num_ics]
@@ -124,31 +126,33 @@ for (j, sim) ∈ enumerate(simulations)
                           Θₗ_ - ΔΘ_thres_vals[j], p_ref) -
                   gsw_rho(Sₗ_, Θₗ_, p_ref)
     Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
-    scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 3), Δρ_static; color = ic_colour[:, j])
-    lines!(ax[1, 2], range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length=3), Δρ_thres;
-             label = "Initial ΔΘ = $(ΔΘ_thres_vals[j])",
-             color = ΔΘ_colour[j])
-#    if j == 3
-#     axislegend(ax[1, 2]; position = :lb)
-#    end
+    lines!(ax[1, 2], range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length=2), Δρ_thres;
+          label = "Δρ threshold for initial ΔΘ = $(ΔΘ_thres_vals[j])",
+          color = ΔΘ_colour[j])
+    scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 2), Δρ_static; color = ic_colour[1:2])
+   if j == 3
+    axislegend(ax[1, 1]; position = :lb, orientation = :horizontal, nbanks = 3)
+    lines!(ax[1, 2], ΔΘ_thres_vals, fill(0, length(ΔΘ_thres_vals));
+           color = ic_colour[3], label = "Static instability threshold")
+    axislegend(ax[1, 2]; position = :lb, orientation = :horizontal, nbanks = 4)
+    axislegend(ax[2, 1]; position = :lb, orientation = :horizontal, nbanks = 2)
+   end
 end
 ic_plot
+save(joinpath(PLOTDIR, "simulations", "ΔΘ_ics.png"), ic_plot)
 
 ## Legend and save
-#delete!(ax[1, 2])
-Legend(ic_plot[3, 1], ax[1, 1], "Initial ΔΘ at the mixed\nand lower layer interface",
-       orientation = :horizontal, nbanks = 3)
-Legend(ic_plot[3, 2], ax[2, 1], "Initial salinity in the mixed layer",
-       orientation = :horizontal, nbanks = 3)
-ic_plot
-colsize!(ic_plot.layout, 1, Auto(0.4))
-ic_plot
-#save(joinpath(PLOTDIR, "simulations", "ΔΘ_ics.png"), ic_plot)
+# delete!(ax[1, 2])
+# Legend(ic_plot[3, 1], ax[1, 1], "Initial ΔΘ at the mixed\nand lower layer interface",
+#        orientation = :horizontal, nbanks = 3)
+# Legend(ic_plot[3, 2], ax[2, 1], "Initial salinity in the mixed layer",
+#        orientation = :horizontal, nbanks = 3)
+# ic_plot
 
 ############################################################################################
 ## Diffusivity time series from the simulation
 ############################################################################################
-κ_ts_fig = Figure(resolution = (1200, 1200))
+κ_ts_fig = Figure(resolution = (850, 1200))
 ax = [Axis(κ_ts_fig[j, i],
         xlabel = "Time (days)",
         xaxisposition = :top,
@@ -156,7 +160,7 @@ ax = [Axis(κ_ts_fig[j, i],
 ΔΘ_vals = [0.5, 1.0, 2.0]
 for (j, sim) ∈ enumerate(simulations)
 
-    sim_output_ = joinpath(sim_datadir, sim)
+    sim_output_ = joinpath(SIM_DATADIR, sim)
     saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
     S_ts_, κ_ts_ = saved_ts_["S_ts"], saved_ts_["κ_ts"]
     close(saved_ts)
@@ -169,19 +173,34 @@ for (j, sim) ∈ enumerate(simulations)
     end
 
 end
-for i ∈ 4:9
-    hidexdecorations!(ax[i])
-end
-for i ∈ [2, 3, 5, 6, 8, 9]
-    hideydecorations!(ax[i])
-end
 tickvals = ["1e-5", "1"]
-Colorbar(κ_ts_fig[:, 4];
+Colorbar(κ_ts_fig[:, 3];
          colormap = cgrad(:Spectral, 2, categorical = true),
          label = "Diffusivity (m²s⁻¹)", ticks = ([0.25, 0.75], tickvals))
 κ_ts_fig
 save(joinpath(PLOTDIR, "simulations", "ΔΘ_κ_ts.png"), κ_ts_fig)
 
+## Average diffusivity over depth
+fig = Figure(size = (500, 500))
+ax = Axis(fig[1, 1];
+          title = "Average diffusivity over below mixed layer",
+          xlabel = "time",
+          ylabel = "Average diffusivity below mixed layer")
+
+for (j, sim) ∈ enumerate(simulations)
+
+    sim_output_ = joinpath(SIM_DATADIR, sim)
+    saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
+    S_ts_, κ_ts_ = saved_ts_["S_ts"], saved_ts_["κ_ts"]
+    close(saved_ts)
+
+    sal_ics = round.(reshape(S_ts_[end, 1, 1:end], :); digits = 4)
+    m1 = vec(mean(κ_ts_[1:82, :, 1]; dims = 1))
+    m2 = vec(mean(κ_ts_[1:82, :, 2]; dims = 1))
+    lines!(ax, t, m1; color = ic_colour[1], label = "stable")
+    lines!(ax, t, m2; color = ic_colour[2], label = "cabbeling unstable")
+end
+fig
 ############################################################################################
 ## Δρ static and cabbeling time series
 ############################################################################################
