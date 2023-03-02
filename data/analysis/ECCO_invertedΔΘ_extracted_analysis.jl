@@ -1,5 +1,5 @@
 using .VerticalProfileStability
-using JLD2, Statistics
+using JLD2, Statistics, ColorSchemes
 
 const EXTRACTED_DATA_INV = jldopen(joinpath(@__DIR__,
                                             "ECCO_invertedΔΘ_extracted_data.jld2"))
@@ -18,7 +18,8 @@ ax = Axis(fig[1, 1];
         ylabel = "Δρ (kgm⁻³)")
 xlims!(ax, xlimits)
 ylims!(ax, ylimits)
-colors = [:blue, :orange, :red, :green]
+#colours = [:blue, :orange, :red, :green]
+colours = get(ColorSchemes.thermal, range(0, 0.8, length = 4))
 for (i, key) ∈ enumerate(keys(EXTRACTED_DATA_INV))
 
     Θₗ, Δρˢ = EXTRACTED_DATA_INV[key]["Θₗ"], EXTRACTED_DATA_INV[key]["Δρˢ"]
@@ -29,14 +30,14 @@ for (i, key) ∈ enumerate(keys(EXTRACTED_DATA_INV))
     ΔΘ_range = EXTRACTED_DATA_INV[key]["ΔΘ_range"]
     Θ_lower_range = EXTRACTED_DATA_INV[key]["Θ_lower_range"]
 
-    sc = scatter!(ax, Θₗ, Δρˢ; color = colors[i], markersize = 4)
-    lines!(ax, Θ_lower_range, Δρ_thres; color = colors[i],
-           label = "ΔΘ = $(ΔΘ_range[1])ᵒC")
+    sc = scatter!(ax, Θₗ, Δρˢ; color = colours[i], markersize = 4)
+    lines!(ax, Θ_lower_range, Δρ_thres; color = colours[i],
+           label = "ΔΘ = $(ΔΘ_range[1])ᵒC", linewidth = 2)
 
 end
 #vlines!(ax, Θ_lower_range; label = "Histogram bins", linestyle = :dash, color = :black)
 #axislegend(ax; position = :rb)
-Legend(fig[2, 1], ax, "Δρ threshold for", orientation = :horizontal)
+Legend(fig[2, 1], ax, "Δρ threshold for", orientation = :horizontal, nbanks = 2)
 save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "2007_ΔΘ_thres_all.png"), fig)
 
 ## Full plot
@@ -131,8 +132,8 @@ for (i, key) ∈ enumerate(ΔΘ_keys)
     hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
 
     hist!(ax[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
-    vlines!(ax[i], Δρ_thres_mean; color = :black, linestyle = :dash,
-            label = "Δρ threshold for ΔΘ")
+    vlines!(ax[i], Δρ_thres_mean; color = colours[i], linestyle = :dash,
+            label = "Δρ threshold for ΔΘ", linewidth = 2)
     ax[i].title = "PDF for ΔΘ = $(ΔΘ_thres[i])"
     hist_fit = fit(Histogram, Δρˢ, hist_edges)
     hist_fit = normalize(hist_fit; mode = :pdf)
@@ -143,6 +144,7 @@ for (i, key) ∈ enumerate(ΔΘ_keys)
     less_thres[i] = sum(hist_fit.weights[find_thres] .* bin_width)
     # after average threshold
     over_thres[i] = 1 - less_thres[i]
+
 end
 
 linkxaxes!(ax[1], ax[2])
@@ -150,7 +152,11 @@ linkxaxes!(ax[3], ax[4])
 axislegend(ax[1]; position = :lt)
 fig
 less_thres
-
+# zoom in
+for i ∈ 1:4
+    xlims!(ax[i], -1, 0.01)
+end
+fig
 ## density or ecdf plot that shows all four on same figure
 fig2 = Figure(size = (500, 500))
 ax = Axis(fig2[1, 1];
@@ -161,10 +167,13 @@ for (i, key) ∈ enumerate(ΔΘ_keys)
     Θₗ, Δρˢ = collect(skipmissing(EXTRACTED_DATA_INV[key]["Θₗ"])),
               collect(skipmissing(EXTRACTED_DATA_INV[key]["Δρˢ"]))
 
+    Δρ_thres = EXTRACTED_DATA_INV[key]["Δρ_thres"]
+    Δρ_thres_mean = mean(Δρ_thres)
     # density!(ax, Δρˢ; normalization = :pdf, color = (colours[i], 0.3),
     #          strokecolor = colours[i], strokearound = true, strokewidth = 3,
     #          label = "ΔΘ = $(ΔΘ_thres[i])")
    ecdfplot!(ax, Δρˢ; label = "ΔΘ = $(ΔΘ_thres[i])", color = colours[i])
+   vlines!(ax, Δρ_thres_mean; color = colours[i], linestyle = :dash)
 end
 vlines!(ax, 0; label = "Static instability", color = :black, linestyle = :dash)
 axislegend(ax; position = :lt)
