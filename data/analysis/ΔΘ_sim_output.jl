@@ -49,18 +49,20 @@ lower_isopycnal = gsw_rho(Sₗ, Θₗ, p_ref)
 αₗ = gsw_alpha(Sₗ, Θₗ, p_ref)
 βₗ = gsw_beta(Sₗ, Θₗ, p_ref)
 m = βₗ / αₗ
-
+find_iso = findall(ρ .≈ lower_isopycnal)
+iso_S = S_grid[find_iso] # salinity values for the isopycnal
+iso_Θ = Θ_grid[find_iso] # Θ values for the isopycnal
 S_linear = range(34.514, S[end]; length = length(iso_S))
 Θ_linear = @. Θₗ + m * (S_linear - Sₗ)
 
-ic_colour = get(ColorSchemes.dense, range(0.25, 1, length = 3))
 ic_colour_stability = get(ColorSchemes.dense, range(0.25, 1, length = 3))
-ic_colour = get(ColorSchemes.haline, range(0.25, 1, length = 3))
-ic_colour = get(ColorSchemes.haline, range(0, 1, length = num_ics * 3))
+ic_colour = get(ColorSchemes.haline, range(0, 0.95, length = 3))
+ic_colour = reverse(get(ColorSchemes.haline, range(0, 0.95, length = num_ics * 3)))
 ic_colour = reshape(ic_colour, 2, 3)
-
 #ΔΘ_colour = [:blue, :orange, :green]
 ΔΘ_colour = get(ColorSchemes.thermal, range(0, 0.8, length = 4))
+
+##
 ic_plot = Figure(resolution = (1000, 1000))
 xlabs = ["Temperature (∘C)" "Salinity (g/kg)"; "Inital ΔΘ (°C) at interface " "Salinity (g/kg)"]
 ylabs = ["Depth (m)" "Depth (m)"; "Δρ (kgm⁻³)" "Temperature (°C)"]
@@ -74,14 +76,19 @@ ax = [Axis(ic_plot[j, i],
 linkyaxes!(ax[1, 1], ax[2, 1])
 linkxaxes!(ax[2, 1], ax[2, 2])
 # Fofonoff diagram
-contour!(ax[2, 2], S, Θ, ρ;
+# contour!(ax[2, 2], S, Θ, ρ;
+#         label = L"Isopycnal through $(S^{*},~\Theta^{*})$",
+#         color = density_grad[2],
+#         linewidth = 2,
+#         levels = [lower_isopycnal])
+lines!(ax[2, 2], iso_S, iso_Θ;
         label = L"Isopycnal through $(S^{*},~\Theta^{*})$",
-        color = density_grad[2],
-        linewidth = 2,
-        levels = [lower_isopycnal])
-lines!(ax[2, 2], S_linear, Θ_linear; color = density_grad[1], linewidth = 2,
+        color = ic_colour_stability[2],
+        linewidth = 2)
+lines!(ax[2, 2], S_linear, Θ_linear; color = ic_colour_stability[1], linewidth = 2,
        label = L"Linearised density at $(S^{*},~\Theta^{*})$")
-scatter!(ax[2, 2], [Sₗ], [Θₗ], color = density_grad[2], label = "Deep water mass")
+scatter!(ax[2, 2], [Sₗ], [Θₗ], color = ic_colour_stability[2],
+        label = L"(S^{*},~\Theta^{*})")
 
 ic_plot
 
@@ -103,17 +110,17 @@ for (j, sim) ∈ enumerate(simulations)
 
     # Salinity depth
     for i ∈ 1:num_ics
-        lines!(ax[2, 1], S₀_[i], z, color = ic_colour[i], label = sal_ic_vals_string_[i])
+        lines!(ax[2, 1], S₀_[i], z, color = ic_colour[3-i, j], label = sal_ic_vals_string_[i])
     end
     # Temperature depth
     Θᵤ_array_ = fill(Θᵤ_, num_ics)
     # lines!(ax[1, 1], T₀_[1], z; label = "ΔΘ = $(abs(Θᵤ_ + Θₗ_))°C",
     #        color = T₀_[1], colorrange = Θ_range, colormap = :thermal)
     lines!(ax[1, 1], T₀_[1], z; label = "ΔΘ = $(ΔΘ_thres_vals[j])°C",
-            color = ΔΘ_colour[j])
+            color = ΔΘ_colour[j], linewidth = 2)
     # Salinity on Fofonoff diagram
     scatter!(ax[2, 2], [S₀_[i][end] for i ∈ 1:num_ics], Θᵤ_array_;
-            color = ic_colour[1:2], markersize = 6)
+            color = reverse(ic_colour[:, j]), markersize = 6)
     # if j == 1
     #     axislegend(ax[2, 2], position = :lt)
     # end
@@ -133,17 +140,18 @@ for (j, sim) ∈ enumerate(simulations)
           label = "Δρ threshold for initial ΔΘ = $(ΔΘ_thres_vals[j])",
           color = ΔΘ_colour[j])
     scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 2), Δρ_static;
-             color = ic_colour_stability[1:2])
+             color = reverse(ic_colour[:, j]))
    if j == 3
     axislegend(ax[1, 1]; position = :lb, orientation = :horizontal, nbanks = 3)
-    lines!(ax[1, 2], ΔΘ_thres_vals, fill(0, length(ΔΘ_thres_vals));
+    hlines!(ax[1, 2], 0;
            color = ic_colour_stability[3], label = "Static instability threshold")
     axislegend(ax[1, 2]; position = :lb, orientation = :horizontal, nbanks = 4)
     axislegend(ax[2, 1]; position = :lb, orientation = :horizontal, nbanks = 2)
+    axislegend(ax[2, 2]; position = :lt)
    end
 end
 ic_plot
-save(joinpath(PLOTDIR, "simulations", "ΔΘ_ics.png"), ic_plot)
+#save(joinpath(PLOTDIR, "simulations", "ΔΘ_ics.png"), ic_plot)
 
 ## Legend and save
 # delete!(ax[1, 2])
