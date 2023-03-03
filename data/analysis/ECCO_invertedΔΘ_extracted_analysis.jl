@@ -240,7 +240,7 @@ for (i, key) ∈ enumerate(keys(inv_data))
     vlines!(ax_pdf[i], Δρ_thres_mean; color = colours[i], linewidth = 2,
             label = "Δρ threshold for ΔΘ")
     vlines!(ax_pdf[i], 0; color = :black, linestyle = :dash)
-    ax_pdf[i].title = "PDF for ΔΘ = $(ΔΘ_range[1])"
+    ax_pdf[i].title = letter_labels[i] * " PDF for ΔΘ = $(ΔΘ_range[1])°C"
     hist_fit = fit(Histogram, Δρˢ, hist_edges)
     hist_fit = normalize(hist_fit; mode = :pdf)
 

@@ -280,6 +280,6 @@ rowsize!(full_fig.layout, 1, Auto(1.15))
 full_fig
 
 ##
-save(joinpath(PLOTDIR, "ARGO", "argo_ss_pdf.png"), full_fig)
+save(joinpath(PLOTDIR, "ARGO", "argo_sc_pdf.png"), full_fig)
 ##
 close(argo_data)
