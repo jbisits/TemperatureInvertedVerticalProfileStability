@@ -80,7 +80,7 @@ band!(ax2, iso_S, Θ_unstable_fill, iso_Θ; color = (density_grad[end], 0.25))
 ΔΘ_stem = 2
 S_ΔΘ = [Sₗ - (αₗ / βₗ) * ΔΘ_stem, Sₗ + (αₗ / βₗ) * ΔΘ_stem]
 ΔΘ_vec = [Θₗ - ΔΘ_stem, Θₗ + ΔΘ_stem]
-#scatter!(ax2, S_ΔΘ, ΔΘ_vec; color = density_grad[1])
+scatter!(ax2, S_ΔΘ, ΔΘ_vec; color = density_grad[1])
 
 # text
 ## label blue dot as star
