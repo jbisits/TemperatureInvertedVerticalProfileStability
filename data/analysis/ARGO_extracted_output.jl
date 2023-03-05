@@ -194,7 +194,7 @@ fig2
 ## full fig - scatter and pdfs.
 ############################################################################################
 Δρ_lims = (-0.1, 0.01)
-bin_width = 0.0025
+bin_width = 0.0005
 full_fig = Figure(size = (800, 1000))
 # scatter
 splot = full_fig[1, 1] = GridLayout()
