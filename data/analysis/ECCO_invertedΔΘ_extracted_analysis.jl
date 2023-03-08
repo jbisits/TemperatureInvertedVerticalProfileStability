@@ -109,10 +109,16 @@ save(joinpath(PLOTDIR, "ECCO", "Θ_inversion",
 
 ## Close data file
 close(inv_data)
+##
 
 using StatsBase, LinearAlgebra
 
 ΔΘ_keys = keys(inv_data)
+num_obs = Array{Int64}(undef, length(ΔΘ_keys))
+for (i, key) ∈ enumerate(ΔΘ_keys)
+    num_obs[i] = length(inv_data[key]["Θₗ"])
+end
+num_obs
 bin_width = 0.01
 
 fig = Figure(size = (1200, 1200))

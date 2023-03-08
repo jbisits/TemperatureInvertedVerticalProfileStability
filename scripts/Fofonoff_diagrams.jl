@@ -187,9 +187,10 @@ end
 fig
 
 ## Δρ_thres
-Θ = LinRange(0.5, 20, 100)
-p_ref = 0.0
-δΘ = [0.25, 0.5, 1.0, 2.0]
+ΔΘ_colour = get(ColorSchemes.thermal, range(0, 0.8, length = 4))
+Θ = LinRange(-1.85, 10, 100)
+p_ref = 500.0
+δΘ = [0.5, 1.0, 2.0, 3.0]
 Sₐ_mean = 34.9
 Δρ_thres_lower = Array{Float64}(undef, length(Θ), length(δΘ))
 Δρ_thres_upper = similar(Δρ_thres_lower)
@@ -214,14 +215,17 @@ end
 
 fig2 = Figure()
 ax = Axis(fig2[1, 1];
-          xlabel = "Θ (ᵒC) of lower level",
+          xlabel = "Θ (ᵒC) of deep water",
           xaxisposition = :top,
-          ylabel = "Δρ_thres (kgm⁻³)",
-          title = "Δρ threshold for multiple ΔΘ values against temperature of lower level"
+          ylabel = "Δρ (kgm⁻³)",
+          title = "Δρ threshold for multiple ΔΘ values against temperature of deep water"
           )
+ylims!(ax, -0.08, 0.005)
 #lines!(ax, Θ, Δρ_thres_lower; label = "Upper water parcel colder")
 #series!(ax, Θ, Δρ_thres_upper'; labels = string.(δΘ) .* "ᵒC")
-series!(ax, Θ, Δρ_thres_lower'; labels = "ΔΘ = " .* string.(δΘ) .* "ᵒC")
+series!(ax, Θ, Δρ_thres_lower'; labels = "ΔΘ = " .* string.(δΘ) .* "ᵒC", color = ΔΘ_colour)
+lines!(ax, Θ, zeros(length(Θ)); color = :black, linestyle = :dash,
+                               label = "Static instability")
 axislegend(ax; position = :rb)
 fig2
 #save(joinpath(PLOTDIR, "Δρ_thres_multiple_deg.png"), fig2)
@@ -256,7 +260,7 @@ fig3 = Figure()
 ax = Axis(fig3[1, 1];
           xlabel = "Absolute salinity (g/kg) of lower level",
           xaxisposition = :top,
-          ylabel = "Δρ_thres (kgm⁻³)",
+          ylabel = "Δρ threshold (kgm⁻³)",
           title = "Δρ threshold for ΔS threshold = $δS g/kg against Sₐ of lower level"
           )
 series!(ax, Sₐ, Δρ_thres_lower'; labels = string.(δS) .* "g/kg")

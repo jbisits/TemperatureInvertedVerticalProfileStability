@@ -89,10 +89,10 @@ wm_star = L"\left(S^{*},~\Theta^{*}\right)"
 text!(ax2, water_parcel_pos, text = wm_star, fontsize = 20, align = (:left, :center),
      color = density_grad[2])
 ## + ΔΘ
-upper_ΔΘ = L"\left(S^{ΔΘ},\Theta^{*}+\Delta\Theta\right)"
+upper_ΔΘ = L"\left(S_{ΔΘ},\Theta^{*}+\Delta\Theta\right)"
 text!(ax2, S_ΔΘ[2]-0.005, ΔΘ_vec[2], text = upper_ΔΘ,
       fontsize = 20, align = (:right, :center), color = density_grad[1])
-lower_ΔΘ = L"\left(S^{-\Delta\Theta},\Theta^{*}-\Delta\Theta\right)"
+lower_ΔΘ = L"\left(S_{-\Delta\Theta},\Theta^{*}-\Delta\Theta\right)"
 text!(ax2, S_ΔΘ[1]-0.005, ΔΘ_vec[1], text = lower_ΔΘ,
       fontsize = 20, align = (:right, :center), color = density_grad[1])
 ## Stability
