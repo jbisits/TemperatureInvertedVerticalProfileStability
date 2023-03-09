@@ -49,6 +49,13 @@ end
 p_ref = 0
 num_ics = 2
 
+Θ = range(-2, 3, 1000)
+Θ_grid = Θ' .* ones(length(Θ))
+S = range(34.54, 34.75, 1000)
+S_grid = S .* ones(length(S))'
+
+ρ = gsw_rho.(S_grid, Θ_grid, p_ref)
+
 ΔΘ_vals = [0.5, 1.0, 2.0]
 Sₗ, Tₗ = 34.7, 0.5
 αₗ, βₗ = gsw_alpha(Sₗ, Tₗ, p_ref), gsw_beta(Sₗ, Tₗ, p_ref)
@@ -60,7 +67,7 @@ for ΔΘ ∈ ΔΘ_vals
     find_Θ = findfirst(Θ .≥ Tₗ - ΔΘ)
     find_S = findfirst(ρ[:, find_Θ] .≥ lower_isopycnal)
     Sᵣ = 0.5 * (Sᵤ + S[find_S])
-    savepath = joinpath(SIM_DATADIR, "initial_ΔΘ_$(ΔΘ)_mu") # mu = more unstable
+    savepath = joinpath(SIM_DATADIR, "initial_ΔΘ_$(ΔΘ)_tgrad")
     mkdir(savepath)
     # Run `schematic.jl` to setup the axis on which to check these
     # scatter!(ax2, [Sᵤ, Sᵣ], Tᵤ .* ones(2))

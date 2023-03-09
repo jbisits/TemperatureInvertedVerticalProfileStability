@@ -66,10 +66,10 @@ function run_model(;
 
     # Set temperature initial condition
     T₀ = Array{Float64}(undef, size(grid))
-    Tᵤ_array = fill(Tᵤ, 20) # want to unhard code these bits eventually
+    #Tᵤ_array = fill(Tᵤ, 20) # want to unhard code these bits eventually
     # This adds a temperature gradient to avoid spurios convective mixing in the mixed layer
     Tₗ_array = fill(Tₗ, 80)
-    #Tᵤ_array = reverse(range(-1.87, Tᵤ, length = 20))
+    Tᵤ_array = reverse(range(Tᵤ + 0.01, Tᵤ, length = 20))
     T₀[:, :, :] = vcat(Tₗ_array, Tᵤ_array)
 
     # Set the salinity initial condition

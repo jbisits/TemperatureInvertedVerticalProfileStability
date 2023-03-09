@@ -4,7 +4,7 @@ using .VerticalProfileStability
 ############################################################################################
 ## Choose which simulation
 ############################################################################################
-simulations = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0") .* "_mu"
+simulations = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0") .* "_tgrad"
 sim_num = 3 # Change this to look at other simulations
 sim_output = joinpath(SIM_DATADIR, simulations[sim_num])
 
@@ -61,6 +61,8 @@ ic_colour = reverse(get(ColorSchemes.haline, range(0, 0.95, length = num_ics * 3
 ic_colour = reshape(ic_colour, 2, 3)
 #ΔΘ_colour = [:blue, :orange, :green]
 ΔΘ_colour = get(ColorSchemes.thermal, range(0, 0.8, length = 4))
+Θ_range = (-2, 2)
+expt_ls = (:dot, :dash, :dashdot)
 
 ##
 ic_plot = Figure(resolution = (1000, 1000))
@@ -82,13 +84,13 @@ linkxaxes!(ax[2, 1], ax[2, 2])
 #         linewidth = 2,
 #         levels = [lower_isopycnal])
 lines!(ax[2, 2], iso_S, iso_Θ;
-        label = L"Isopycnal through $(S^{*},~\Theta^{*})$",
-        color = ic_colour_stability[2],
+        label = L"Isopycnal through $(S_{l},~\Theta_{l})$",
+        color = :black,
         linewidth = 2)
-lines!(ax[2, 2], S_linear, Θ_linear; color = ic_colour_stability[1], linewidth = 2,
-       label = L"Linearised density at $(S^{*},~\Theta^{*})$")
-scatter!(ax[2, 2], [Sₗ], [Θₗ], color = ic_colour_stability[2],
-        label = L"(S^{*},~\Theta^{*})")
+lines!(ax[2, 2], S_linear, Θ_linear; color = :grey, linewidth = 2,
+       label = L"Linearised density at $(S_{l},~\Theta_{l})$")
+scatter!(ax[2, 2], [Sₗ], [Θₗ], color = :red,
+        label = L"(S_{l},~\Theta_{l})")
 
 ic_plot
 
@@ -110,14 +112,16 @@ for (j, sim) ∈ enumerate(simulations)
 
     # Salinity depth
     for i ∈ 1:num_ics
-        lines!(ax[2, 1], S₀_[i], z, color = ic_colour[3-i, j], label = sal_ic_vals_string_[i])
+        lines!(ax[2, 1], S₀_[i], z; color = ic_colour[3-i, j], linestyle = expt_ls[j],
+               label = sal_ic_vals_string_[i], linewidth = 2)
     end
     # Temperature depth
     Θᵤ_array_ = fill(Θᵤ_, num_ics)
     # lines!(ax[1, 1], T₀_[1], z; label = "ΔΘ = $(abs(Θᵤ_ + Θₗ_))°C",
-    #        color = T₀_[1], colorrange = Θ_range, colormap = :thermal)
+    #        colormap = :thermal, color = T₀_[1],
+    #        linestyle = expt_ls[j], linewidth = 3)
     lines!(ax[1, 1], T₀_[1], z; label = "ΔΘ = $(ΔΘ_thres_vals[j])°C",
-            color = ΔΘ_colour[j], linewidth = 2)
+            linestyle = expt_ls[j], linewidth = 2, color = :black)
     # Salinity on Fofonoff diagram
     scatter!(ax[2, 2], [S₀_[i][end] for i ∈ 1:num_ics], Θᵤ_array_;
             color = reverse(ic_colour[:, j]), markersize = 6)
@@ -136,22 +140,26 @@ for (j, sim) ∈ enumerate(simulations)
                           Θₗ_ - ΔΘ_thres_vals[j], p_ref) -
                   gsw_rho(Sₗ_, Θₗ_, p_ref)
     Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
-    lines!(ax[1, 2], range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length=2), Δρ_thres;
-          label = "Δρ threshold for initial ΔΘ = $(ΔΘ_thres_vals[j])",
-          color = ΔΘ_colour[j])
+    # lines!(ax[1, 2], range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length=2), Δρ_thres;
+    #       label = "Δρ threshold for initial ΔΘ = $(ΔΘ_thres_vals[j])",
+    #       color = ΔΘ_colour[j])
+    hlines!(ax[1, 2], Δρ_thres; linestyle = expt_ls[j], color = :black,
+            label = "initial ΔΘ = $(ΔΘ_thres_vals[j])")
     scatter!(ax[1, 2], fill(ΔΘ_thres_vals[j], 2), Δρ_static;
              color = reverse(ic_colour[:, j]))
    if j == 3
-    axislegend(ax[1, 1]; position = :lb, orientation = :horizontal, nbanks = 3)
+    #axislegend(ax[1, 1]; position = :lb, orientation = :horizontal, nbanks = 3)
     hlines!(ax[1, 2], 0;
-           color = ic_colour_stability[3], label = "Static instability threshold")
-    axislegend(ax[1, 2]; position = :lb, orientation = :horizontal, nbanks = 4)
-    axislegend(ax[2, 1]; position = :lb, orientation = :horizontal, nbanks = 2)
+           color = ic_colour_stability[3]#=, label = "Static instability threshold"=#)
+    #axislegend(ax[1, 2]; position = :lb, orientation = :horizontal, nbanks = 4)
+    axislegend(ax[1, 2], ax[1, 2], "Δρ threshold for"; position = :lb, orientation = :horizontal, nbanks = 4)
+    #axislegend(ax[2, 1]; position = :lb, orientation = :horizontal, nbanks = 2)
     axislegend(ax[2, 2]; position = :lt)
    end
 end
+colsize!(ic_plot.layout, 1, Auto(0.6))
 ic_plot
-#save(joinpath(PLOTDIR, "simulations", "ΔΘ_ics.png"), ic_plot)
+#save(joinpath(PLOTDIR, "simulations", "model_ics.png"), ic_plot)
 
 ## Legend and save
 # delete!(ax[1, 2])
@@ -181,7 +189,8 @@ for (j, sim) ∈ enumerate(simulations)
 
     for i ∈ 1:num_ics
         ax[i, j].title = "Diffusivity - initial salintiy in ML = $(sal_ics[i]),\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
-        heatmap!(ax[i, j], t, z, κ_ts_[:, :, i]', colormap = :Spectral)
+        heatmap!(ax[i, j], t, z, κ_ts_[:, :, i]'; colormap = :Spectral,
+                 colorrange = (1e-5, 1))
     end
 
 end
@@ -190,7 +199,7 @@ Colorbar(κ_ts_fig[:, 3];
          colormap = cgrad(:Spectral, 2, categorical = true),
          label = "Diffusivity (m²s⁻¹)", ticks = ([0.25, 0.75], tickvals))
 κ_ts_fig
-save(joinpath(PLOTDIR, "simulations", "ΔΘ_κ_ts.png"), κ_ts_fig)
+#save(joinpath(PLOTDIR, "simulations", "model_diff.png"), κ_ts_fig)
 
 ## Average diffusivity over depth
 fig = Figure(size = (500, 500))
