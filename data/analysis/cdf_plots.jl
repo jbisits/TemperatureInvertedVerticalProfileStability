@@ -12,11 +12,11 @@ data_files = (EXTRACTED_DATA_INV, ARGO_OUTPUT)
 
 ## setup figure
 fig = Figure(size = (1000, 600))
-titles = ("CDF for ECCO data", "CDF for ARGO data")
+titles = ("(a) CDF for ECCO data", "(b) CDF for ARGO data")
 ax = [Axis(fig[i, 1];
            title = titles[i],
            xlabel = "Δρ (kgm⁻³)",
-           ylabel = "P(X < Δρ | ΔΘ)") for i ∈ eachindex(data_files)]
+           ylabel = "ℙ(Δρₘˢ < Δρ | ΔΘ)") for i ∈ eachindex(data_files)]
 xlims!(ax[1], -0.1, 0.01)
 linkxaxes!(ax[1], ax[2])
 
