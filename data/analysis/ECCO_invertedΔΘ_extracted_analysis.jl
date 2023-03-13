@@ -19,7 +19,7 @@ ax = Axis(fig[1, 1];
 xlims!(ax, xlimits)
 ylims!(ax, ylimits)
 #colours = [:blue, :orange, :red, :green]
-colours = get(ColorSchemes.thermal, range(0, 0.8, length = 4))
+colours = get(ColorSchemes.thermal, range(0, 0.8; length = 4))
 for (i, key) ∈ enumerate(keys(inv_data))
 
     Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
