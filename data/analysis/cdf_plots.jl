@@ -29,6 +29,9 @@ for (i, data) ∈ enumerate(data_files)
     d = jldopen(data)
     for (j, key) ∈ enumerate(keys(d))
 
+        # lats = collect(skipmissing(d[key]["lats"]))
+        # find = findall(lats .≤ -60)
+        # Δρˢ = sort(collect(skipmissing(d[key]["Δρˢ"][find])))
         Δρˢ = sort(collect(skipmissing(d[key]["Δρˢ"])))
         fit_ecdf = ecdf(Δρˢ)
         lines!(ax[i], Δρˢ, fit_ecdf(Δρˢ);
@@ -52,8 +55,10 @@ ECCO_cdf_Δρ_val
 ARGO_cdf_Δρ_val
 ##
 test = jldopen(data_files[2])
-Δρˢ = collect(skipmissing(test["ΔΘ_thres_[0.5, 1.0]"]["Δρˢ"]))
-test_ecdf = ecdf(Δρˢ)
+Δρˢ = collect(skipmissing(test["ΔΘ_thres_3.0"]["Δρˢ"]))
+lats = collect(skipmissing(test["ΔΘ_thres_[0.5, 1.0]"]["lats"]))
+find = findall(lats .<= -60)
+test_ecdf = ecdf(Δρˢ[find])
 lines(sort(Δρˢ), test_ecdf(sort(Δρˢ)); color = :orange)
 test_ecdf(-0.02)
 close(test)
