@@ -22,17 +22,21 @@ linkxaxes!(ax[1], ax[2])
 
 Δρ_val = -0.04
 ECCO_cdf_Δρ_val = Vector{Float64}(undef, 4)
+ECCO_num_obs = Vector{Int64}(undef, 4)
 ARGO_cdf_Δρ_val = Vector{Float64}(undef, 4)
+ARGO_num_obs = Vector{Int64}(undef, 4)
 ## Calculate and plot ecdf
 for (i, data) ∈ enumerate(data_files)
 
     d = jldopen(data)
     for (j, key) ∈ enumerate(keys(d))
 
-        # lats = collect(skipmissing(d[key]["lats"]))
-        # find = findall(lats .≤ -60)
-        # Δρˢ = sort(collect(skipmissing(d[key]["Δρˢ"][find])))
-        Δρˢ = sort(collect(skipmissing(d[key]["Δρˢ"])))
+        lats = collect(skipmissing(d[key]["lats"]))
+        find = findall(lats .≤ -60)
+        Δρˢ = sort(collect(skipmissing(d[key]["Δρˢ"][find])))
+        # Δρˢ = sort(collect(skipmissing(d[key]["Δρˢ"])))
+        i==1 ? ECCO_num_obs[j] = length(Δρˢ) :
+               ARGO_num_obs[j] = length(Δρˢ)
         fit_ecdf = ecdf(Δρˢ)
         lines!(ax[i], Δρˢ, fit_ecdf(Δρˢ);
               color = ΔΘ_colours[j],
@@ -41,7 +45,8 @@ for (i, data) ∈ enumerate(data_files)
                ARGO_cdf_Δρ_val[j] = fit_ecdf(Δρ_val)
 
     end
-    vlines!(ax[i], Δρ_val; linestyle = :dash, color = :black, label = "Δρ' = $(Δρ_val)")
+    vlines!(ax[i], 0; linestyle = :dash, color = :black)
+    vlines!(ax[i], Δρ_val; linestyle = :dash, color = :red, label = "Δρ' = $(Δρ_val)")
     close(d)
 
 end
@@ -50,9 +55,14 @@ xlims!(ax[1], -0.5, 0.02)
 xlims!(ax[2], -0.5, 0.02)
 Legend(fig[3, :], ax[1], orientation = :horizontal)
 fig
-save(joinpath(PLOTDIR, "cdf.png"), fig)
+save(joinpath(PLOTDIR, "cdf_60S.png"), fig)
 ECCO_cdf_Δρ_val
 ARGO_cdf_Δρ_val
+ECCO_num_obs
+ARGO_num_obs
+##
+close(data_files[1])
+close(data_files[2])
 ##
 test = jldopen(data_files[2])
 Δρˢ = collect(skipmissing(test["ΔΘ_thres_3.0"]["Δρˢ"]))

@@ -1,5 +1,5 @@
 using .VerticalProfileStability
-using JLD2, Statistics, ColorSchemes
+using JLD2, Statistics, ColorSchemes, StatsBase, LinearAlgebra
 
 const EXTRACTED_DATA_INV = joinpath(@__DIR__, "ECCO_invertedΔΘ_extracted_data.jld2")
 inv_data = jldopen(EXTRACTED_DATA_INV)
@@ -111,8 +111,6 @@ save(joinpath(PLOTDIR, "ECCO", "Θ_inversion",
 close(inv_data)
 ##
 
-using StatsBase, LinearAlgebra
-
 ΔΘ_keys = keys(inv_data)
 num_obs = Array{Int64}(undef, length(ΔΘ_keys))
 for (i, key) ∈ enumerate(ΔΘ_keys)
@@ -192,7 +190,7 @@ fig2
 ## full fig - scatter and pdfs.
 ############################################################################################
 Δρ_lims = (-0.1, 0.01)
-xlimits = (-1.88, 10)
+xlimits = (-1.88, 6)
 ylimits = (-0.1, 0.01)
 bin_width = 0.0001
 full_fig = Figure(size = (800, 1000))
@@ -207,12 +205,15 @@ ax_splot = Axis(splot[1, 1];
 for (i, key) ∈ enumerate(keys(inv_data))
 
     Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
-    find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
+    lats = inv_data[key]["lats"]
+    find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2] .&&
+                   lats .≤ -60)
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
-    lats = inv_data[key]["lats"][find]
-    Δρ_thres = inv_data[key]["Δρ_thres"]
-    ΔΘ_range = inv_data[key]["ΔΘ_range"]
     Θ_lower_range = inv_data[key]["Θ_lower_range"]
+    find_below_6 = findall(Θ_lower_range .≤ 6)
+    Θ_lower_range = inv_data[key]["Θ_lower_range"][find_below_6]
+    Δρ_thres = inv_data[key]["Δρ_thres"][find_below_6]
+    ΔΘ_range = inv_data[key]["ΔΘ_range"]
 
     sc = scatter!(ax_splot, Θₗ, Δρˢ; color = colours[i], markersize = 4)
     lines!(ax_splot, Θ_lower_range, Δρ_thres; color = colours[i],
@@ -236,6 +237,9 @@ letter_labels = ["(b)", "(c)", "(d)", "(e)"]
 for (i, key) ∈ enumerate(keys(inv_data))
 
     Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
+    lats = inv_data[key]["lats"]
+    find = findall(lats .≤ -60)
+    Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
     ΔΘ_range = inv_data[key]["ΔΘ_range"]
     Δρ_thres = inv_data[key]["Δρ_thres"]
 
@@ -266,7 +270,7 @@ less_thres
 over_thres
 rowsize!(full_fig.layout, 1, Auto(1.15))
 #full_fig
-save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "ecco_sc_pdf.png"), full_fig)
+save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "ecco_sc_pdf_60S.png"), full_fig)
 ##
 close(inv_data)
 ## Below here maybe not that useful.

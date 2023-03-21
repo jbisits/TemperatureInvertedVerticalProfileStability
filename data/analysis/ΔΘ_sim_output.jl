@@ -89,7 +89,9 @@ lines!(ax[2, 2], iso_S, iso_Θ;
         linewidth = 2)
 lines!(ax[2, 2], S_linear, Θ_linear; color = :grey, linewidth = 2,
        label = L"Linearised density at $(S_{l},~\Theta_{l})$")
-scatter!(ax[2, 2], [Sₗ], [Θₗ], color = :red,
+lines!(ax[2, 2], Sₗ:0.025:Sₘ, fill(Θₗ, length(Sₗ:0.025:Sₘ));
+       color = ic_colour[end, end], linestyle = :dashdotdot)
+scatter!(ax[2, 2], [Sₗ], [Θₗ]; color = :red,
         label = L"(S_{l},~\Theta_{l})")
 
 ic_plot
