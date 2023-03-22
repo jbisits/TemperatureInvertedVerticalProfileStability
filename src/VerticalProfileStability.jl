@@ -15,11 +15,13 @@ export
     ECCO_DATADIR,
     EN4_DATADIR,
     SIM_DATADIR,
+    GOSHIP_DATADIR,
     PLOTDIR,
     SRCDIR
 
 const ECCO_DATADIR = joinpath(@__DIR__, "../data/observations/ECCO_daily_mean_TS/")
 const EN4_DATADIR = joinpath(@__DIR__, "../data/observations/EN4/")
+const GOSHIP_DATADIR = joinpath(@__DIR__, "../data/observations/goship/mat_files")
 const SIM_DATADIR = joinpath(@__DIR__, "../data/simulations/")
 const PLOTDIR = joinpath(@__DIR__, "../plots")
 const SRCDIR = joinpath(@__DIR__)

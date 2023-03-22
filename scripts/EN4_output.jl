@@ -1,20 +1,35 @@
 using .VerticalProfileStability
 using Statistics, JLD2
 
-## Choose a threshold for all years
-ΔΘ_thres = [0.5, 1.0, 2.0, 3.0]
+## Look at data from a single project and type. For the codes see
+# https://www.nodc.noaa.gov/gtspp/document/codetbls/gtsppcode.html#TYPE
+
 en4_yearly_data = readdir(EN4_DATADIR)[2:end]
-saved_output = joinpath(@__DIR__, "..", "data", "analysis", "EN4_extracted.jld2")
-for year ∈ en4_yearly_data
+year_files = glob("*.nc", joinpath(EN4_DATADIR, en4_yearly_data[1]))
+ds = NCDataset(year_files; aggdim = "N_PROF")
+project = ds[:PROJECT_NAME]
+project[1:7, 1]
+## GTSPP project, source is BO which is Bottle.
+char_mat = project[1:7, findall(project[1, :] .== ['G'])]
+GTSPPBO = findall(char_mat[6, :] .== 'B' .&& char_mat[7, :] .== 'O')
+θ = ds[:POTM_CORRECTED][:, GTSPPBO[1]]
+S = ds[:PSAL_CORRECTED][:, GTSPPBO[1]]
+lines(S, θ)
 
-    @info year[end-3:end] #* "ΔΘ_thres = "
-    en4_data = glob("*.nc", joinpath(EN4_DATADIR, year))
-    output = MaximumDensityDifference.en4_max_Δρ(en4_data, ΔΘ_thres[2])
-    jldopen(saved_output, "a+") do file
-        file["EN4_"*year[end-3:end]] = output
-    end
+## Choose a threshold for all years
+# ΔΘ_thres = [0.5, 1.0, 2.0, 3.0]
+# en4_yearly_data = readdir(EN4_DATADIR)[2:end]
+# saved_output = joinpath(@__DIR__, "..", "data", "analysis", "EN4_extracted.jld2")
+# for year ∈ en4_yearly_data
 
-end
+#     @info year[end-3:end] #* "ΔΘ_thres = "
+#     en4_data = glob("*.nc", joinpath(EN4_DATADIR, year))
+#     output = MaximumDensityDifference.en4_max_Δρ(en4_data, ΔΘ_thres[2])
+#     jldopen(saved_output, "a+") do file
+#         file["EN4_"*year[end-3:end]] = output
+#     end
+
+# end
 
 
 ## Look at output and check things are working for single year of data
