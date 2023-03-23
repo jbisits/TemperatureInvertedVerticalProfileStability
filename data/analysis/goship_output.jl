@@ -1,6 +1,7 @@
 using .VerticalProfileStability
 
 const GOSHIP_DATA = joinpath(@__DIR__, "goship.jld2")
+const GOSHIP_JOINED = joinpath(@__DIR__, "goship_joined.jld2")
 
 gd = jldopen(GOSHIP_DATA)
 
@@ -45,3 +46,11 @@ xlims!(ax2, -1.8, 15)
 fig2
 ##
 close(gd)
+
+## Joined data
+gdj = jldopen(GOSHIP_JOINED)
+gdj["0.5"]["all"]
+
+
+##
+close(gdj)

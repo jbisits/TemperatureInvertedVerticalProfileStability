@@ -23,6 +23,31 @@ for ocean ∈ oceans
 
 end
 
+## Create `all` entry that has all the `oceans` in one dictionary entry
+goship_joined = joinpath(@__DIR__, "..", "data", "analysis", "goship_joined.jld2")
+goship_output = jldopen(goship_analysis)
+
+output_keys = ("Δρˢ", "Δρᶜ", "Θᵤ", "Θₗ", "pᵤ", "pₗ", "Sᵤ", "Sₗ", "lons", "lats")
+for key ∈ keys(goship_output)
+
+    temp_dict = Dict{String, Vector}(key => Vector{Union{Float64, Missing}}(undef, 0)
+                                     for key ∈ output_keys)
+    for ocean ∈ oceans
+
+        for (i, data_key) ∈ enumerate(output_keys)
+
+            append!(temp_dict[data_key], goship_output[key][ocean][data_key])
+
+        end
+
+    end
+
+    jldopen(goship_joined, "a+") do file
+        file[key * "/all"] = temp_dict
+    end
+end
+
+close(goship_output)
 ## Test function ouptut
 goship_files = glob("*.mat", joinpath(GOSHIP_DATADIR, oceans[1]))
 test_goship = goship_max_Δρ(goship_files[3:4], 2.0)
