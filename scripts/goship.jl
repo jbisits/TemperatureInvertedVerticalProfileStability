@@ -1,7 +1,7 @@
 using .VerticalProfileStability
 using MAT
 
-## Density difference for all ocean profile data
+## Density difference for all ocean profile data from GO-SHIP
 oceans = ("atlantic", "indian", "pacific", "southern")
 goship_analysis = joinpath(@__DIR__, "..", "data", "analysis", "goship.jld2")
 ΔΘ_thres = (0.5, 1.0, 2.0, 3.0)
