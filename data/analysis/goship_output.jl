@@ -49,7 +49,8 @@ close(gd)
 
 ## Joined data
 gdj = jldopen(GOSHIP_JOINED)
-gdj["0.5"]["all"]
+gdj["0.5"]["all"]["Δρˢ"]
+
 
 
 ##

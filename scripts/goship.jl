@@ -43,7 +43,7 @@ for key ∈ keys(goship_output)
     end
 
     jldopen(goship_joined, "a+") do file
-        file[key * "/all"] = temp_dict
+        file[key] = temp_dict
     end
 end
 
