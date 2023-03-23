@@ -565,20 +565,20 @@ function goship_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, 
         @info "-- File $(k) of $(length(data_files))"
 
         vars = matread(file)["D_reported"]
-        Sₐ = typeof(vars[var_names[1]]) == Matrix{Float64} ? (vars[var_names[1]]) :
+        Sₐ = typeof(vars[var_names[1]]) == Matrix{Float64} ? [vars[var_names[1]]] :
                                                               vec(vars[var_names[1]])
-        Θ =  typeof(vars[var_names[2]]) == Matrix{Float64} ? (vars[var_names[2]]) :
+        Θ =  typeof(vars[var_names[2]]) == Matrix{Float64} ? [vars[var_names[2]]] :
                                                               vec(vars[var_names[2]])
-        p =  typeof(vars[var_names[3]]) == Matrix{Float64} ? (vars[var_names[3]]) :
+        p =  typeof(vars[var_names[3]]) == Matrix{Float64} ? [vars[var_names[3]]] :
                                                               vec(vars[var_names[3]])
-        lons = typeof(vars[var_names[4]]) == Vector{Float64} ? (vars[var_names[4]]) :
+        lons = typeof(vars[var_names[4]]) == Vector{Float64} ? [vars[var_names[4]]] :
                                                                 vec(vars[var_names[4]])
-        lats = typeof(vars[var_names[5]]) == Vector{Float64} ? (vars[var_names[5]]) :
+        lats = typeof(vars[var_names[5]]) == Vector{Float64} ? [vars[var_names[5]]] :
                                                                 vec(vars[var_names[5]])
 
         for j ∈ eachindex(Sₐ)
 
-            Δρˢ = similar(vec(lats[j]), Union{Float64, Missing})
+            Δρˢ = similar(vec(p[j][1, :]), Union{Float64, Missing})
             Δρᶜ = similar(Δρˢ)
             Θₗ, Θᵤ = similar(Δρˢ), similar(Δρˢ)
             pₗ, pᵤ = similar(Δρˢ), similar(Δρˢ)
@@ -612,7 +612,7 @@ function goship_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, 
 
             end
             # `append!` to the results dictionary
-            res = (Δρˢ, Δρᶜ, Θᵤ, Θₗ, pᵤ, pₗ, Sᵤ, Sₗ, vec(lons[j]), vec(lats[j]))
+            res = (Δρˢ, Δρᶜ, Θᵤ, Θₗ, pᵤ, pₗ, Sᵤ, Sₗ, lons[j], lats[j])
             for (d, key) ∈ enumerate(res_keys)
                 append!(res_dict[key], res[d])
             end

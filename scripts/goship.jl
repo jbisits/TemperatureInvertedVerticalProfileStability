@@ -12,6 +12,7 @@ for ocean ∈ oceans
     @info "$(ocean) ocean"
     for ΔΘ ∈ ΔΘ_thres
 
+        @info "- ΔΘ = $(ΔΘ)"
         res = goship_max_Δρ(files, ΔΘ)
 
         jldopen(goship_analysis, "a+") do file
@@ -24,7 +25,7 @@ end
 
 ## Test function ouptut
 goship_files = glob("*.mat", joinpath(GOSHIP_DATADIR, oceans[1]))
-test_goship = goship_max_Δρ(goship_files[1:2], 2.0)
+test_goship = goship_max_Δρ(goship_files[3:4], 2.0)
 
 test_temp = collect(skipmissing(test_goship["Θₗ"]))
 test_dd = collect(skipmissing(test_goship["Δρˢ"]))
@@ -36,11 +37,11 @@ fig
 
 ## Little data expoloration
 goship_files = glob("*.mat", joinpath(GOSHIP_DATADIR, oceans[1]))
-vars = matread(goship_files[2])["D_reported"]
+vars = matread(goship_files[4])["D_reported"]
 keys(vars)
 size(vars["lonlist"])
-lons = vec(vars["lonlist"])
-lats = vec(vars["latlist"])
+lons = vars["lonlist"]
+lats = vars["latlist"]
 
 scatter(lons, lats)
 
@@ -50,7 +51,9 @@ obs = ("CTDSA", "CTDCT", "CTDprs", "lonlist", "latlist")
 
 Sₐ, Θ, p = vars[obs[1]], vars[obs[2]], vars[obs[3]]
 typeof(p)
-[p]
+
+p_vec_mat = (p)
+p_vec_mat[1]
 lines(Sₐ, Θ)
 lines(gsw_rho.(Sₐ, Θ, p), p)
 gsw_rho.(Sₐ, Θ, p)
