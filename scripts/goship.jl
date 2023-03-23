@@ -1,15 +1,30 @@
 using .VerticalProfileStability
 using MAT
 
-ocean = ("atlantic", "indian", "pacific", "southern")
-goship_files = glob("*.mat", joinpath(GOSHIP_DATADIR, ocean[1]))
-
+## Density difference for all ocean profile data
+oceans = ("atlantic", "indian", "pacific", "southern")
+goship_analysis = joinpath(@__DIR__, "..", "data", "analysis", "goship.jld2")
 ΔΘ_thres = (0.5, 1.0, 2.0, 3.0)
 
-Main.VerticalProfileStability.MaximumDensityDifference.goship_max_Δρ(goship_files, ΔΘ_thres[3])
+for ocean ∈ oceans
+
+    files = glob("*.mat", joinpath(GOSHIP_DATADIR, ocean))
+    @info "$(ocean) ocean"
+    for ΔΘ ∈ ΔΘ_thres
+
+        res = goship_max_Δρ(files, ΔΘ)
+
+        jldopen(goship_analysis, "a+") do file
+            file["$(ΔΘ)/" * ocean] = res
+        end
+
+    end
+
+end
 
 ## Test function ouptut
-test_goship = Main.VerticalProfileStability.MaximumDensityDifference.goship_max_Δρ(goship_files[1:2], 2.0)
+goship_files = glob("*.mat", joinpath(GOSHIP_DATADIR, oceans[1]))
+test_goship = goship_max_Δρ(goship_files[1:2], 2.0)
 
 test_temp = collect(skipmissing(test_goship["Θₗ"]))
 test_dd = collect(skipmissing(test_goship["Δρˢ"]))
@@ -20,11 +35,12 @@ ylims!(ax, -0.1, 0.01)
 fig
 
 ## Little data expoloration
-vars = matread(goship_files[1])["D_reported"]
+goship_files = glob("*.mat", joinpath(GOSHIP_DATADIR, oceans[1]))
+vars = matread(goship_files[2])["D_reported"]
 keys(vars)
 size(vars["lonlist"])
-lons = vec(vars["lonlist"][2])
-lats = vec(vars["latlist"])[1]
+lons = vec(vars["lonlist"])
+lats = vec(vars["latlist"])
 
 scatter(lons, lats)
 
@@ -32,8 +48,9 @@ vec(vars["CTDprs"])[1]
 ## Measurements I want
 obs = ("CTDSA", "CTDCT", "CTDprs", "lonlist", "latlist")
 
-Sₐ, Θ, p = vars[obs[1]][1][:, 1], vars[obs[2]][1][:, 1], vars[obs[3]][1][:, 1]
-
+Sₐ, Θ, p = vars[obs[1]], vars[obs[2]], vars[obs[3]]
+typeof(p)
+[p]
 lines(Sₐ, Θ)
 lines(gsw_rho.(Sₐ, Θ, p), p)
 gsw_rho.(Sₐ, Θ, p)
