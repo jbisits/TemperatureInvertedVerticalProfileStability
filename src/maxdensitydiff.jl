@@ -4,7 +4,7 @@ module MaximumDensityDifference
 
 using Rasters, OceanRasterConversions, GibbsSeaWater, MAT, NCDatasets
 
-export series_max_Δρ, series2vec, get_lats, argo_max_Δρ, en4_max_Δρ
+export series_max_Δρ, series2vec, get_lats, argo_max_Δρ, goship_max_Δρ, en4_max_Δρ
 
 """
     function Δρ_cab(Sₐ::Vector, Θ::Vector, p::Vector)
@@ -538,6 +538,82 @@ function argo_max_Δρ(data_file::AbstractString, ΔΘ_thres::Union{Float64, Vec
 
     return Dict("Δρˢ" => Δρˢ, "Δρᶜ" => Δρᶜ, "Θᵤ" => Θᵤ, "Θₗ" => Θₗ, "pᵤ" => pᵤ, "pₗ" => pₗ,
                 "Sᵤ" => Sᵤ, "Sₗ" => Sₗ, "lats" => lat)
+
+end
+
+"""
+    function goship_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, Vector{Float64}};
+                           max_pressure = 1000,
+                           var_names = ("CTDSA", "CTDCT", "CTDprs", "lonlist", "latlist"))
+Calculate the maximum static density difference of data that has been collated as part of
+the GO-SHIP easy ocean project. The data is required for this function is the `.mat` format.
+After extracting the profile data the function `Δρ_max` is used to find the maximum static
+to density difference, as well as the levels at which this is computed. The output is
+returned as a `Dict`.
+"""
+function goship_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, Vector{Float64}};
+                        max_pressure = 1000,
+                        var_names = ("CTDSA", "CTDCT", "CTDprs", "lonlist", "latlist"),
+                        res_keys = ("Δρˢ", "Δρᶜ", "Θᵤ", "Θₗ", "pᵤ", "pₗ", "Sᵤ", "Sₗ",
+                                    "lons", "lats"))
+
+    res_dict = Dict{String, Vector}(key => Vector{Union{Float64, Missing}}(undef, 0)
+                                    for key ∈ res_keys)
+    for (k, file) ∈ enumerate(data_files)
+
+        @info "File $(k) of $(length(data_files))"
+
+        vars = matread(file)["D_reported"]
+        Sₐ = vec(vars[var_names[1]])
+        Θ = vec(vars[var_names[2]])
+        p = vec(vars[var_names[3]])
+        lons = vec(vars[var_names[4]])
+        lats = vec(vars[var_names[5]])
+
+        for j ∈ eachindex(Sₐ)
+
+            Δρˢ, Δρᶜ = similar(vec(lats[j]), Union{Float64, Missing}),
+                       similar(vec(lats[j]), Union{Float64, Missing})
+            Θₗ, Θᵤ = similar(Δρˢ), similar(Δρˢ)
+            pₗ, pᵤ = similar(Δρˢ), similar(Δρˢ)
+            Sₗ, Sᵤ = similar(Δρˢ), similar(Δρˢ)
+
+            for i ∈ eachindex(Δρˢ)
+
+                find_1000 = findall(vec(p[j][:, i]) .≤ max_pressure)
+
+                if !isempty(find_1000)
+
+                    Sₐ_profile = vec(Sₐ[j][find_1000, i])
+                    Θ_profile  = vec(Θ[j][find_1000, i])
+                    p_profile  = vec(p[j][find_1000, i])
+                    res = Δρ_max(Sₐ_profile, Θ_profile, p_profile, ΔΘ_thres)
+                    Δρᶜ[i] = res.Δρᶜ_max
+                    Δρˢ[i] = res.Δρˢ_max
+                    ul = res.upper_level
+                    ll = res.lower_level
+                    if ismissing(ul)
+                        Θᵤ[i], Θₗ[i] = ul, ll
+                        pᵤ[i], pₗ[i] = ul, ll
+                        Sᵤ[i], Sₗ[i] = ul, ll
+                    else
+                        Sᵤ[i], Sₗ[i] = Sₐ_profile[ul], Sₐ_profile[ll]
+                        Θᵤ[i], Θₗ[i] = Θ_profile[ul], Θ_profile[ll]
+                        pᵤ[i], pₗ[i] = p_profile[ul], p_profile[ll]
+                    end
+
+                end
+
+            end
+            res = (Δρˢ, Δρᶜ, Θᵤ, Θₗ, pᵤ, pₗ, Sᵤ, Sₗ, vec(lons[j]), vec(lats[j]))
+            for (d, key) ∈ enumerate(res_keys)
+                append!(res_dict[key], res[d])
+            end
+        end
+
+    end
+
+    return res_dict
 
 end
 
