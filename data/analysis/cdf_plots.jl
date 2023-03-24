@@ -87,7 +87,6 @@ for (i, data) ∈ enumerate(data_files)
     d = jldopen(data)
     for (j, key) ∈ enumerate(keys(d))
 
-
         Δρˢ =   if i == 1
                     sort(collect(skipmissing(d[key]["Δρˢ"])))
                 else
@@ -116,7 +115,7 @@ xlims!(ax[1], -0.5, 0.02)
 xlims!(ax[2], -0.5, 0.02)
 Legend(fig[3, :], ax[1], orientation = :horizontal)
 fig
-#save(joinpath(PLOTDIR, "cdf_ECCO_GOSHIP.png"), fig)
+save(joinpath(PLOTDIR, "cdf_ECCO_GOSHIP.png"), fig)
 ECCO_cdf_Δρ_val
 GOSHIP_cdf_Δρ_val
 ECCO_num_obs

@@ -161,5 +161,6 @@ rowsize!(full_fig.layout, 1, Auto(1.15))
 full_fig
 data_count == data_count2
 data_count
+#save(joinpath(PLOTDIR, "GOSHIP", "goship_sc_pdf.png"), full_fig)
 ##
 close(gdj)
