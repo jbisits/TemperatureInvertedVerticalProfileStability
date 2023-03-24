@@ -10,7 +10,7 @@ xlimits = (-1.88, 10)
 ylimits = (-0.1, 0.1)
 # Density thresholds
 Θₗ_range = range(-1.8, 5; length = 100)
-ΔΘ_thres = [0.5, 1.0, 2.0, 3.0]
+ΔΘ_thres = (0.5, 1.0, 2.0, 3.0)
 ## Same axis, thresholds in different colours
 fig = Figure(size = (700, 700))
 ax = Axis(fig[1, 1];
