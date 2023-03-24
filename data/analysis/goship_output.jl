@@ -65,7 +65,7 @@ gdj["0.5"]
 ## Figure
 Θₗ_lims = (-1.88, 10)
 Θₗ_range = range(Θₗ_lims...; length = 100)
-Δρ_lims = (-0.3, 0.02)
+Δρ_lims = (-0.2, 0.02)
 bin_width = 0.001
 full_fig = Figure(size = (800, 1000))
 # scatter
