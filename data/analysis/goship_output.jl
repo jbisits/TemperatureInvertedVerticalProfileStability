@@ -13,7 +13,7 @@ oceans = ("atlantic", "indian", "pacific", "southern")
 # Location of inverted profiles is nice because easy to show polar regions are key.
 fig = Figure(size = (500, 500))
 ax = GeoAxis(fig[1, 1];
-             title = "CTD ship data",
+             title = "GO-SHIP Easy Ocean data product",
              xlabel = "Longitude",
              ylabel = "Latitude",
              coastlines = true)
