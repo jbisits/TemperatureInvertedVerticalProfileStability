@@ -1,8 +1,7 @@
 # Aims of this project
 
 The underlying question for this project is **does cabbeling shape the nature of vertical profiles in the gloabal ocean?**
-To see if there is evidence for this happening we are using a highly idealised one-dimensional water column model, and global circulation model output from [ECCOv4r4](https://www.ecco-group.org/products-ECCO-V4r4.htm).
-We may also look at observations.
+To see if there is evidence for this happening we are using a highly idealised one-dimensional water column model, and global circulation model output from [ECCOv4r4](https://www.ecco-group.org/products-ECCO-V4r4.htm) and observations from the [GO-SHIP Easy Ocean](https://cchdo.ucsd.edu/products/goship-easyocean) data product.
 
 Modules have been written for the one-dimensional water column model (`watercolmodel.jl`) and analysing the ECCO data (`maxdensitydiff.jl`).
 
@@ -15,8 +14,8 @@ To do this we setup a two layer model and look at various initial conditions of 
 
 The model is two mdae up of two layers,
 
-1. a mixed layer that is 100m in depth (0 - 100m) with initial conditions of constant temperature (set to $-1.85^{\circ}C$) and varying salinity values
-2. a lower layer that is 400m in depth (100 - 500m) with initial conditions of constant temperature (set to $0.5^{\circ}C$) and increasing salinity.
+- a quasi-mixed layer that is 100m in depth (0 - 100m); and
+- a lower layer that is 400m in depth (100 - 500m).
 
 The temperature of $-1.85^{\circ}C$ in the upper layer is chosen to be close to the freezing point of water as typically winter surface water in the marginal ice zone and other parts of the Southern Ocean will hover around this temperature.
 We then set the salinity at the interface of the layers to be 34.7g/kg.
