@@ -5,6 +5,7 @@
 
 data/observations
 data/simulations/old
+data/analysis/old
 *.png
 
 ################################################################################

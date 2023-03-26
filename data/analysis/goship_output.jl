@@ -11,7 +11,7 @@ oceans = ("atlantic", "indian", "pacific", "southern")
 
 ## Location of temperature inverted profiles (or just profiles).
 # Location of inverted profiles is nice because easy to show polar regions are key.
-fig = Figure()
+fig = Figure(size = (500, 500))
 ax = GeoAxis(fig[1, 1];
              title = "CTD ship data",
              xlabel = "Longitude",
@@ -22,16 +22,20 @@ for key ∈ keys(gd["1.0"])
 
     Θᵤ = collect(skipmissing(gd["1.0"][key]["Θᵤ"]))
     Θₗ = collect(skipmissing(gd["1.0"][key]["Θₗ"]))
+    lons = gd["1.0"][key]["lons"]
+    lats = gd["1.0"][key]["lats"]
+    sc = scatter!(ax, lons, lats; color = :grey, markersize = 5)
     find_inv = findall(Θᵤ .< Θₗ)
-    lons = gd["1.0"][key]["lons"][find_inv]
-    lats = gd["1.0"][key]["lats"][find_inv]
-    # lons = gd["1.0"][key]["lons"]
-    # lats = gd["1.0"][key]["lats"]
-    scatter!(ax, lons, lats; label = key, markersize = 5)
+    lons_inv = lons[find_inv]
+    lats_inv = lats[find_inv]
+    scinv = scatter!(ax, lons_inv, lats_inv; color = (:red, 0.5), markersize = 5)
+    Legend(fig[2, 1], [sc, scinv], ["CTD measurement", "Temperature inverted"],
+           orientation = :horizontal)
 
 end
-Legend(fig[2, 1], ax, orientation = :horizontal)
+#Legend(fig[2, 1], ax, orientation = :horizontal)
 fig
+save(joinpath(PLOTDIR, "GOSHIP", "CTD_location.png"), fig)
 
 ##
 fig2 = Figure()
