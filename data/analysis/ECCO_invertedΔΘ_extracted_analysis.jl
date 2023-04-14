@@ -190,11 +190,16 @@ fig2
 ## full fig - scatter and pdfs.
 ############################################################################################
 Δρ_lims = (-0.1, 0.01)
-xlimits = (-1.88, 6)
+xlimits = (-1.88, 10)
 ylimits = (-0.1, 0.01)
 bin_width = 0.0001
-full_fig = Figure(size = (800, 1000))
 colours = get(ColorSchemes.thermal, range(0, 0.8; length = 4))
+area = begin
+    grid_path = joinpath(@__DIR__, "../observations/ECCO_grid/GRID_GEOMETRY_ECCO_V4r4_latlon_0p50deg.nc")
+    rs_grid = Raster(grid_path, name = :area)
+    rs_grid[X(1)]
+end
+full_fig = Figure(size = (800, 1000))
 # scatter
 splot = full_fig[1, 1] = GridLayout()
 ax_splot = Axis(splot[1, 1];
@@ -206,13 +211,11 @@ for (i, key) ∈ enumerate(keys(inv_data))
 
     Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
     lats = inv_data[key]["lats"]
-    find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2] .&&
-                   lats .≤ -60)
+    find = findall(xlimits[1] .≤ Θₗ .≤ xlimits[2] .&& ylimits[1] .≤ Δρˢ .≤ ylimits[2])
     Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
     Θ_lower_range = inv_data[key]["Θ_lower_range"]
-    find_below_6 = findall(Θ_lower_range .≤ 6)
-    Θ_lower_range = inv_data[key]["Θ_lower_range"][find_below_6]
-    Δρ_thres = inv_data[key]["Δρ_thres"][find_below_6]
+    Θ_lower_range = inv_data[key]["Θ_lower_range"]
+    Δρ_thres = inv_data[key]["Δρ_thres"]
     ΔΘ_range = inv_data[key]["ΔΘ_range"]
 
     sc = scatter!(ax_splot, Θₗ, Δρˢ; color = colours[i], markersize = 4)
@@ -236,23 +239,23 @@ letter_labels = ["(b)", "(c)", "(d)", "(e)"]
 
 for (i, key) ∈ enumerate(keys(inv_data))
 
-    Θₗ, Δρˢ = inv_data[key]["Θₗ"], inv_data[key]["Δρˢ"]
+    Θₗ = inv_data[key]["Θₗ"]
+    Δρˢ = collect(skipmissing(inv_data[key]["Δρˢ"]))
     lats = inv_data[key]["lats"]
-    find = findall(lats .≤ -60)
-    Θₗ, Δρˢ = Θₗ[find], Δρˢ[find]
     ΔΘ_range = inv_data[key]["ΔΘ_range"]
     Δρ_thres = inv_data[key]["Δρ_thres"]
 
     Δρ_thres_mean = mean(Δρ_thres)
     hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
-
-    hist!(ax_pdf[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
+    area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
+    hist_fit = fit(Histogram, Δρˢ, area_weights_, hist_edges)
+    hist_fit = normalize(hist_fit; mode = :pdf)
+    #hist!(ax_pdf[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
+    plot!(ax_pdf[i], hist_fit; color = (colours[i], 0.5))
     vlines!(ax_pdf[i], Δρ_thres_mean; color = colours[i], linewidth = 2,
             label = "Δρ threshold for ΔΘ")
     vlines!(ax_pdf[i], 0; color = :black, linestyle = :dash)
     ax_pdf[i].title = letter_labels[i] * " PDF for ΔΘ = $(ΔΘ_range[1])°C"
-    hist_fit = fit(Histogram, Δρˢ, hist_edges)
-    hist_fit = normalize(hist_fit; mode = :pdf)
 
     find_thres = findall(hist_edges .≤ Δρ_thres_mean)
 
@@ -270,9 +273,10 @@ less_thres
 over_thres
 rowsize!(full_fig.layout, 1, Auto(1.15))
 #full_fig
-save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "ecco_sc_pdf_60S.png"), full_fig)
+save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "ecco_sc_areaweightedpdf.png"), full_fig)
 ##
 close(inv_data)
+
 ## Below here maybe not that useful.
 
 ## Statistics
