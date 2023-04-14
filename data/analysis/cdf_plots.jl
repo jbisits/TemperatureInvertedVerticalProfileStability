@@ -79,6 +79,11 @@ linkxaxes!(ax[1], ax[2])
 Δρ_val = -0.04
 ECCO_cdf_Δρ_val = Vector{Float64}(undef, 4)
 ECCO_num_obs = Vector{Int64}(undef, 4)
+area = begin
+    grid_path = joinpath(@__DIR__, "../observations/ECCO_grid/GRID_GEOMETRY_ECCO_V4r4_latlon_0p50deg.nc")
+    rs_grid = Raster(grid_path, name = :area)
+    rs_grid[X(1)]
+end
 GOSHIP_cdf_Δρ_val = Vector{Float64}(undef, 4)
 GOSHIP_num_obs = Vector{Int64}(undef, 4)
 ## Calculate and plot ecdf
@@ -97,7 +102,12 @@ for (i, data) ∈ enumerate(data_files)
                 end
         i==1 ? ECCO_num_obs[j] = length(Δρˢ) :
                GOSHIP_num_obs[j] = length(Δρˢ)
-        fit_ecdf = ecdf(Δρˢ)
+        fit_ecdf = i == 1 ? begin
+                                lats = d[key]["lats"]
+                                area_weights_ = weights(Float32.([area[Y(At(lat))]
+                                                                    for lat ∈ lats]))
+                                ecdf(Δρˢ; weights = area_weights_)
+                            end : ecdf(Δρˢ)
         lines!(ax[i], Δρˢ, fit_ecdf(Δρˢ);
               color = ΔΘ_colours[j],
               label = "ΔΘ = $(ΔΘ_thres[j])°C")
@@ -115,7 +125,7 @@ xlims!(ax[1], -0.5, 0.02)
 xlims!(ax[2], -0.5, 0.02)
 Legend(fig[3, :], ax[1], orientation = :horizontal)
 fig
-save(joinpath(PLOTDIR, "cdf_ECCO_GOSHIP.png"), fig)
+save(joinpath(PLOTDIR, "cdf_areaweightedECCO_GOSHIP.png"), fig)
 ECCO_cdf_Δρ_val
 GOSHIP_cdf_Δρ_val
 ECCO_num_obs
