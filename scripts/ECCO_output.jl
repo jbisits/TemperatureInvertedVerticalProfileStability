@@ -173,3 +173,51 @@ for select_ΔΘ ∈ ΔΘ_thres
     end
 
 end
+
+## Temperature inverted profile location map
+
+output_path = joinpath(ECCO_DATA_ANALYSIS, "output_[0.5, 1.0]")
+output_files = glob("*.nc", output_path)
+ΔΘ_series = RasterSeries(output_files, Dim{:dates}(timestamps);
+                         child = Raster, name = "ΔΘ")
+
+for rs ∈ ΔΘ_series
+    set(rs, )
+    map!(x -> ismissing(x) ? x : x ≤ -0.5 ? x : missing, rs, rs)
+end
+
+heatmap(ΔΘ_series[end])
+length(ΔΘ_series)
+
+## Change to 1, then can merge and sum over the time dimension.
+
+for rs ∈ ΔΘ_series
+    map!(x -> ismissing(x) ? 0 : x ≤ -0.5 ? 1 : 0, rs, rs)
+end
+
+ΔΘ_counts =  ΔΘ_series[1].data[:, :, 1]
+for rs ∈ ΔΘ_series[2:end]
+    ΔΘ_counts .+= rs.data[:, :, 1]
+end
+map!(x -> x == 0 ? missing : x, ΔΘ_counts, ΔΘ_counts)
+
+ΔΘ_proportion = ΔΘ_counts ./ sum(skipmissing(ΔΘ_counts))
+heatmap(ΔΘ_proportion)
+
+rs_proportion = Raster(ΔΘ_proportion, (X(lookup(ΔΘ_series[1], :X)), Y(lookup(ΔΘ_series[1], :Y))))
+
+using GeoMakie
+fig = Figure(size = (500, 500))
+ax = GeoAxis(fig[1, 1];
+             title = "Location and count of temperature\ninverted profiles for ECCO",
+             xlabel = "Longitude",
+             ylabel = "Latitude",
+             coastlines = true)
+hm = heatmap!(ax, lookup(rs_proportion, :X), lookup(rs_proportion, :Y), ΔΘ_counts;
+              colormap = :batlow)
+#Colorbar(fig[1, 2], hm, label = "Number of profiles")
+Colorbar(fig[2, 1], hm, label = "Number of profiles", vertical = false, flipaxis = true)
+fig
+#save(joinpath(PLOTDIR, "ECCO/Θ_inversion/profile_count.png"), fig)
+# create full figure by running corresponding geo makie map in goship_output.jl
+#save(joinpath(PLOTDIR, "combined_profile_location.png"), fig)
