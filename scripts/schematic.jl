@@ -267,3 +267,49 @@ arrows!(ax2, [S[1]], [Θ[1]], [0], [1]; lengthscale = 3.75)
 axislegend(ax2, position = (0.073, 0.95))
 fig
 save(joinpath(PLOTDIR, "single_schematic.png"), fig)
+
+## Density difference threshold
+
+S_average = 35
+S_range = [S_average - 4, S_average + 4]
+Θ_range = range(-2, 30; length = 1000)
+pᵣ = 500
+ΔΘ_vals = (0.5, 1.0, 2.0, 3.0)
+colours = get(ColorSchemes.thermal, range(0, 0.8; length = 4))
+
+fig = Figure(size = (500, 500))
+ax = Axis(fig[1, 1];
+          title = "Density difference threshold for mean ocean salinity",
+          xlabel = "Lower level temperature (°C)",
+          xaxisposition = :top,
+          ylabel = "Static density difference (kgm⁻³)")
+
+hlines!(ax, 0; linestyle = :dash, color = :black, label = "Static instability")
+for (i, ΔΘ) ∈ enumerate(ΔΘ_vals)
+
+    # mean
+    α_mean = @. gsw_alpha(S_average, Θ_range, pᵣ)
+    β_mean = @. gsw_beta(S_average, Θ_range, pᵣ)
+    S_thres_mean = @. S_average - (α_mean / β_mean) * (ΔΘ)
+    Δρ_thres_mean = @. gsw_rho(S_thres_mean, Θ_range - ΔΘ, pᵣ) -
+                       gsw_rho(S_average, Θ_range, pᵣ)
+    lines!(ax, Θ_range, Δρ_thres_mean; color = colours[i], label = "ΔΘ = $(ΔΘ)°C")
+
+    # error bands
+    α_lower = @. gsw_alpha(S_range[1], Θ_range, pᵣ)
+    β_lower = @. gsw_beta(S_range[1], Θ_range, pᵣ)
+    S_thres_lower = @. S_range[1] - (α_lower / β_lower) * ΔΘ
+    Δρ_thres_lower = @. gsw_rho(S_thres_lower, Θ_range - ΔΘ, pᵣ) -
+                        gsw_rho(S_range[1], Θ_range, pᵣ)
+
+    α_upper = @. gsw_alpha(S_range[2], Θ_range, pᵣ)
+    β_upper = @. gsw_beta(S_range[2], Θ_range, pᵣ)
+    S_thres_upper = @. S_range[2] - (α_upper / β_upper) * ΔΘ
+    Δρ_thres_upper = @. gsw_rho(S_thres_upper, Θ_range - ΔΘ, pᵣ) -
+                        gsw_rho(S_range[2], Θ_range, pᵣ)
+
+    band!(ax, Θ_range, Δρ_thres_lower, Δρ_thres_upper; color = (colours[i], 0.2))
+end
+axislegend(ax, position = :rb)
+fig
+save(joinpath(PLOTDIR, "updated_Δρ_thres.png"), fig)

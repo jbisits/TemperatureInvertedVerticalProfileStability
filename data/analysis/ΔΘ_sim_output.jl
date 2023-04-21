@@ -1,4 +1,4 @@
-using JLD2, ColorSchemes
+using JLD2, ColorSchemes, Statistics
 using .VerticalProfileStability
 
 ############################################################################################
@@ -203,110 +203,127 @@ Colorbar(κ_ts_fig[:, 3];
 κ_ts_fig
 #save(joinpath(PLOTDIR, "simulations", "model_diff.png"), κ_ts_fig)
 
-## Average diffusivity over depth
-fig = Figure(size = (500, 500))
-ax = Axis(fig[1, 1];
-          title = "Average diffusivity over below mixed layer",
-          xlabel = "time",
-          ylabel = "Average diffusivity below mixed layer")
-
+############################################################################################
+# Density anomaly time series
+############################################################################################
+σ₀_fig = Figure(resolution = (850, 1200))
+z_range = 61:100
+ax = [Axis(σ₀_fig[j, i],
+        xlabel = "Time (days)",
+        xaxisposition = :top,
+        ylabel = "Depth (metres)",
+        limits = ((0, 60), (-200, -5))) for i ∈ 1:num_ics, j ∈ 1:3]
+ΔΘ_vals = [0.5, 1.0, 2.0]
 for (j, sim) ∈ enumerate(simulations)
 
     sim_output_ = joinpath(SIM_DATADIR, sim)
     saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
-    S_ts_, κ_ts_ = saved_ts_["S_ts"], saved_ts_["κ_ts"]
+    S_ts_, T_ts_, κ_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"], saved_ts_["κ_ts"]
     close(saved_ts)
+    σₒ_ts = gsw_sigma0.(S_ts_[z_range, :, :], T_ts_[z_range, :, :])
 
     sal_ics = round.(reshape(S_ts_[end, 1, 1:end], :); digits = 4)
-    m1 = vec(mean(κ_ts_[1:82, :, 1]; dims = 1))
-    m2 = vec(mean(κ_ts_[1:82, :, 2]; dims = 1))
-    lines!(ax, t, m1; color = ic_colour[1], label = "stable")
-    lines!(ax, t, m2; color = ic_colour[2], label = "cabbeling unstable")
+
+    for i ∈ 1:num_ics
+        ax[i, j].title = "Density anomaly - initial salintiy in ML = $(sal_ics[i]),\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
+        hm = heatmap!(ax[i, j], t, z[z_range], σₒ_ts[:, :, i]'; colormap = :dense)
+        if j == length(simulations) && i == 2
+            Colorbar(σ₀_fig[:, 3], hm, label = "σ₀ anomaly (kgm⁻3)")
+        end
+        # low = [findfirst(κ_ts_[:, k, i] .== 1.0) for k ∈ eachindex(κ_ts_[1, :, i])]
+        # low = map(x -> isnothing(x) ? z[end] : z[x-1] + 2.5, low)
+        # high = [findlast(κ_ts_[:, k, i] .== 1.0) for k ∈ eachindex(κ_ts_[1, :, i])]
+        # high = map(x -> isnothing(x) ? z[end] : z[x+1] - 2.5, high)
+        # rangebars!(ax[i, j], t[1:10:end], low[1:10:end], high[1:10:end]; color = (:red, 0.1))
+    end
+
 end
-fig
-############################################################################################
-## Δρ static and cabbeling time series
-############################################################################################
-Δρ_s, Δρ_c = Δρ_vals["Δρ_s"], Δρ_vals["Δρ_c"]
-densitydiff_TS = Figure(resolution = (1000, 700))
-titles = ["Maximum static denstiy difference\nfor "*simulations[sim_num],
-          "Maximum cabbeling density difference\nfor "*simulations[sim_num]]
-ylabs = [L"\Delta \sigma_{0}^{s}", L"\Delta \sigma_{0}^{c}"]
-ylimits = (minimum(Δρ_s)-0.002, maximum(Δρ_c)+0.001)
-ax = [Axis(densitydiff_TS[1, i],
-        title = titles[i],
+σ₀_fig
+
+## Only unstable
+σ₀_fig = Figure(resolution = (850, 1200))
+z_range = 61:100
+ax = [Axis(σ₀_fig[j, 1],
         xlabel = "Time (days)",
-        ylabel = ylabs[i],
-        ylabelsize = 18) for i ∈ 1:2]
-ylims!(ax[1], ylimits)
-ylims!(ax[2], ylimits)
-linkyaxes!(ax[1], ax[2])
-
-line_colour = reverse(get(ColorSchemes.viridis, range(0, 1, length = num_ics)))
-
-for i ∈ 1:num_ics
-    lines!(ax[1], t, Δρ_s[:, i], color = line_colour[i])
-    scatter!(ax[1], [t[1]], [Δρ_s[1, i]], color = line_colour[i],
-            label = sal_ic_vals_string[i])
-    #lines!(ax[1], t, Δρ_thres, color = :red)
-    lines!(ax[2], t, Δρ_c[:, i], color = line_colour[i])
-    scatter!(ax[2], [t[1]], [Δρ_c[1, i]], color = line_colour[i])
-end
-
-densitydiff_TS[2, :] = Legend(densitydiff_TS, ax[1],
-                            "Initial salinity in the mixed layer (g/kg)";
-                            orientation = :horizontal)
-
-densitydiff_TS
-
-############################################################################################
-## Density difference threshold for time series of density difference
-############################################################################################
-
-Θₗ_ts = T_ts[80, :, 1]
-Sₗ_ts = S_ts[80, :, 1]
-αₗ_ts = gsw_alpha.(Sₗ_ts, Θₗ_ts, p_ref)
-βₗ_ts = gsw_beta.(Sₗ_ts, Θₗ_ts, p_ref)
-ΔΘ_thres_vals = [0.25, 0.5, 2.0] # set in the respective `collect_timeseires.jl` files
-ΔΘ_ts = ones(length(Θₗ_ts)) .* ΔΘ_thres_vals[sim_num]
-Δρ_thres_ts = @. gsw_rho(Sₗ_ts - (αₗ_ts / βₗ_ts) * ΔΘ_ts, Θₗ_ts - ΔΘ_ts, p_ref) -
-                 gsw_rho(Sₗ_ts, Θₗ_ts, p_ref)
-
-lines!(ax[1], t, Δρ_thres_ts; color = :red)
-densitydiff_TS
-
-## Threshold density diff scatter plot
-fig = Figure(size = (500, 500))
-ax = Axis(fig[1, 1],
-          xlabel = "ΔΘ (°C)",
-          ylabel = "Δρ (kgm⁻³)")
-ΔΘ_thres_vals = [0.5, 1.0, 2.0]
-
+        xaxisposition = :top,
+        ylabel = "Depth (metres)",
+        limits = ((0, 60), (-200, -5))) for j ∈ 1:3]
+ΔΘ_vals = [0.5, 1.0, 2.0]
 for (j, sim) ∈ enumerate(simulations)
+
+    sim_output_ = joinpath(SIM_DATADIR, sim)
+    saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
+    S_ts_, T_ts_, κ_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"], saved_ts_["κ_ts"]
+    close(saved_ts)
+    σₒ_ts = gsw_sigma0.(S_ts_[z_range, :, :], T_ts_[z_range, :, :])
+
+    sal_ics = round.(S_ts_[end, 1, end]; digits = 4)
+
+    ax[j].title = "Density anomaly - initial salintiy in ML = $(sal_ics),\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
+    hm = heatmap!(ax[j], t, z[z_range], σₒ_ts[:, :, 2]'; colormap = :dense)
+    if j == length(simulations)
+        Colorbar(σ₀_fig[:, 2], hm, label = "σ₀ anomaly (kgm⁻3)")
+    end
+    # low = [findfirst(κ_ts_[:, k, 2] .== 1.0) for k ∈ eachindex(κ_ts_[1, :, 2])]
+    # low = map(x -> isnothing(x) ? z[end] : z[x-1] + 2.5, low)
+    # high = [findlast(κ_ts_[:, k, 2] .== 1.0) for k ∈ eachindex(κ_ts_[1, :, 2])]
+    # high = map(x -> isnothing(x) ? z[end] : z[x+1] - 2.5, high)
+    # rangebars!(ax[j], t[1:10:end], low[1:10:end], high[1:10:end]; color = (:orange, 0.2))
+
+end
+σ₀_fig
+#save(joinpath(PLOTDIR, "simulations/density_anomaly_ts.png"), σ₀_fig)
+
+## Density difference at interface
+Δσ₀_fig = Figure(resolution = (850, 1200))
+ax = [Axis(Δσ₀_fig[j, 1],
+        xlabel = "Time (days)",
+        ylabel = "Δσ₀ (kgm⁻³)") for j ∈ 1:3]
+ΔΘ_vals = [0.5, 1.0, 2.0]
+for (j, sim) ∈ enumerate(simulations)
+
     sim_output_ = joinpath(SIM_DATADIR, sim)
     saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
     S_ts_, T_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"]
     close(saved_ts)
+    Δσ₀_ts = gsw_rho.(S_ts_[81, :, 2], T_ts_[80, :, 2], 0) .-
+             gsw_rho.(S_ts_[80, :, 2], T_ts_[81, :, 2], 0)
 
-    Θₗ_ = [T_ts_[80, 1, i] for i ∈ 1:num_ics]
-    Sₗ_ = [S_ts_[80, 1, i] for i ∈ 1:num_ics]
-    Θᵤ_ = [T_ts_[81, 1, i] for i ∈ 1:num_ics]
-    Sᵤ_ = [S_ts_[81, 1, i] for i ∈ 1:num_ics]
-    println(Θᵤ_)
-    println(Sᵤ_)
-    println(Θₗ_)
-    println(Sₗ_)
-    αₗ_ = gsw_alpha.(Sₗ_, Θₗ_, p_ref)
-    βₗ_ = gsw_beta.(Sₗ_, Θₗ_, p_ref)
+    sal_ics = round.(S_ts_[end, 1, end]; digits = 4)
 
-    Δρ_thres = @. gsw_rho(Sₗ_ - (αₗ_ / βₗ_) * ΔΘ_thres_vals[j], Θₗ_ - ΔΘ_thres_vals[j], p_ref) -
-                  gsw_rho(Sₗ_, Θₗ_, p_ref)
-    Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
-    println(Δρ_thres)
-    println(Δρ_static)
-    scatter!(ax, fill(ΔΘ_thres_vals[j], 3), Δρ_static; color = ic_colour)
-    lines!(ax, range(ΔΘ_thres_vals[j]-0.1, ΔΘ_thres_vals[j]+0.1; length = 3), Δρ_thres;
-             label = "Δρ threshold for initial ΔΘ = $(ΔΘ_thres_vals[j])", color = :red)
+    ax[j].title = "Density difference at interface - initial salintiy in ML = $(sal_ics),\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
+    lines!(ax[j], t, Δσ₀_ts)
+    scatter!(ax[j], [t[1]], [Δσ₀_ts[1]])
+
 end
-axislegend(ax; position = :rt)
-fig
+Δσ₀_fig
+
+## Density ts with initial condition subtracted
+σ₀_anom_from_ic_fig = Figure(resolution = (850, 1200))
+z_range = 61:100
+ax = [Axis(σ₀_anom_from_ic_fig[j, 1],
+        xlabel = "Time (days)",
+        xaxisposition = :top,
+        ylabel = "Depth (metres)",
+        limits = ((0, 60), (-200, -5))) for j ∈ 1:3]
+ΔΘ_vals = [0.5, 1.0, 2.0]
+for (j, sim) ∈ enumerate(simulations)
+
+    sim_output_ = joinpath(SIM_DATADIR, sim)
+    saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
+    S_ts_, T_ts_, κ_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"], saved_ts_["κ_ts"]
+    close(saved_ts)
+    σ₀_anom_ts = gsw_sigma0.(S_ts_[z_range, :, 2], T_ts_[z_range, :, 2]) .-
+                 gsw_sigma0.(S_ts_[z_range, 1, 2], T_ts_[z_range, 1, 2])
+    sal_ics = round.(S_ts_[end, 1, end]; digits = 4)
+
+    ax[j].title = "Density anomaly from initial salinity,\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
+    hm = heatmap!(ax[j], t, z[z_range], σ₀_anom_ts'; colormap = :dense)
+    if j == length(simulations)
+        Colorbar(σ₀_anom_from_ic_fig[:, 2], hm, label = "σ₀ anomaly (kgm⁻3)")
+    end
+
+end
+σ₀_anom_from_ic_fig
+
+##

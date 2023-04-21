@@ -132,12 +132,19 @@ ECCO_num_obs
 GOSHIP_num_obs
 ##
 
-##
-test = jldopen(data_files[2])
-Δρˢ = collect(skipmissing(test["ΔΘ_thres_3.0"]["Δρˢ"]))
-lats = collect(skipmissing(test["ΔΘ_thres_[0.5, 1.0]"]["lats"]))
-find = findall(lats .<= -60)
-test_ecdf = ecdf(Δρˢ[find])
-lines(sort(Δρˢ), test_ecdf(sort(Δρˢ)); color = :orange)
-test_ecdf(-0.02)
-close(test)
+## Probability against ΔΘ
+fig = Figure(size = (500, 500))
+ax = Axis(fig[1, 1];
+           title = "Probability less than Δρ' for increasing absolute temperature difference",
+           xlabel = "Absolute temperature difference, |ΔΘ| (°C)",
+           xscale = log,
+           ylabel = "ℙ(Δρₘˢ < Δρ' | ΔΘ)")
+        #    xlabel = "ℙ(Δρₘˢ < Δρ' | ΔΘ)",
+        #    ylabel = "Absolute temperature difference, |ΔΘ| (°C)")
+ΔΘ_vals = [0.5, 1.0, 2.0, 3.0]
+scatterlines!(ax, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCO")
+scatterlines!(ax, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
+# scatterlines!(ax, ECCO_cdf_Δρ_val, log.(ΔΘ_vals); label = "ECCO")
+# scatterlines!(ax, GOSHIP_cdf_Δρ_val, log.(ΔΘ_vals); label = "GOSHIP")
+axislegend(ax, position = :lt)
+fig
