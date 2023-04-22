@@ -309,7 +309,7 @@ for (i, key) ∈ enumerate(keys(inv_data))
 
     sc = scatter!(ax_splot, Θₗ, Δρˢ; color = colours[i], markersize = 1)
     lines!(ax_splot, Θ_lower_range, Δρ_thres; color = colours[i],
-           label = "ΔΘ = $(ΔΘ_range[1])ᵒC", linewidth = 2)
+           label = "ΔΘ = -$(ΔΘ_range[1])ᵒC", linewidth = 2)
 
 end
 Legend(splot[2, 1], ax_splot, "Δρ threshold for", orientation = :horizontal)
@@ -340,7 +340,7 @@ for (i, key) ∈ enumerate(keys(inv_data))
     vlines!(ax_pdf[i], Δρ_thres_mean; color = colours[i], linewidth = 2,
             label = "Δρ threshold for ΔΘ")
     vlines!(ax_pdf[i], 0; color = :black, linestyle = :dash)
-    ax_pdf[i].title = letter_labels[i] * " PDF for ΔΘ = $(ΔΘ_range[1])°C"
+    ax_pdf[i].title = letter_labels[i] * " PDF for ΔΘ = -$(ΔΘ_range[1])°C"
 
     find_thres = findall(hist_edges .≤ Δρ_thres_mean)
 
@@ -350,15 +350,15 @@ for (i, key) ∈ enumerate(keys(inv_data))
     over_thres[i] = 1 - less_thres[i]
 
 end
-pdf_lims = (-0.2, 0.01)
+
 for i ∈ 1:4
     if i != 4
         hidexdecorations!(ax_pdf[i], grid = false)
     end
-    xlims!(ax_pdf[i], pdf_lims)
+    xlims!(ax_pdf[i], Δρ_limits)
 end
 #full_fig
-save(joinpath(PLOTDIR, "ECCO/Θ_inversion/ecco_sc_pdf_0_2.png"), full_fig)
+save(joinpath(PLOTDIR, "ECCO/Θ_inversion/ecco_sc_pdf_0_2_negative.png"), full_fig)
 ##
 close(inv_data)
 

@@ -139,7 +139,6 @@ ax = Axis(fig[1, 1];
            title = "Probability less than Δρ' for increasing absolute temperature difference",
            xlabel = "Absolute temperature difference, |ΔΘ| (°C)",
            xscale = log,
-           xticks = string(ΔΘ_vals),
            ylabel = "ℙ(Δρₘˢ < Δρ' | ΔΘ)")
         #    xlabel = "ℙ(Δρₘˢ < Δρ' | ΔΘ)",
         #    ylabel = "Absolute temperature difference, |ΔΘ| (°C)")

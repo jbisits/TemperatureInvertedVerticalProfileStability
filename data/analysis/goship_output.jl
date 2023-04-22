@@ -101,7 +101,7 @@ for (i, key) ∈ enumerate(keys(gdj))
     Δρ_thres = @. gsw_rho.(Sₗ_mean - (αₗ / βₗ) * ΔΘ_thres[i], Θₗ_range - ΔΘ_thres[i],
                             pₘ_mean) - gsw_rho.(Sₗ_mean, Θₗ_range, pₘ_mean)
     lines!(ax_splot, Θₗ_range, Δρ_thres; color = ΔΘ_colours[i], linewidth = 2,
-            label = "ΔΘ = $(ΔΘ_thres[i])ᵒC")
+            label = "ΔΘ = -$(ΔΘ_thres[i])ᵒC")
 end
 full_fig
 Legend(splot[2, 1], ax_splot, "Δρ threshold for", orientation = :horizontal)
@@ -141,7 +141,7 @@ for (i, key) ∈ enumerate(keys(gdj))
             label = "Δρ threshold for ΔΘ")
     vlines!(ax_pdf[i], 0; color = :black, linestyle = :dash,
             label = "Static stability threshold")
-    ax_pdf[i].title = letter_labels[i] * " PDF for ΔΘ = $(ΔΘ_thres[i])°C"
+    ax_pdf[i].title = letter_labels[i] * " PDF for ΔΘ = -$(ΔΘ_thres[i])°C"
     hist_fit = fit(Histogram, Δρˢ, hist_edges)
     hist_fit = normalize(hist_fit; mode = :pdf)
 
@@ -167,6 +167,6 @@ over_thres
 full_fig
 data_count == data_count2
 data_count
-#save(joinpath(PLOTDIR, "GOSHIP", "goship_sc_pdf_v2.png"), full_fig)
+save(joinpath(PLOTDIR, "GOSHIP", "goship_sc_pdf_v2_negative.png"), full_fig)
 ##
 close(gdj)

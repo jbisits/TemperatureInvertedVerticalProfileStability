@@ -293,7 +293,7 @@ for (i, ΔΘ) ∈ enumerate(ΔΘ_vals)
     S_thres_mean = @. S_average - (α_mean / β_mean) * (ΔΘ)
     Δρ_thres_mean = @. gsw_rho(S_thres_mean, Θ_range - ΔΘ, pᵣ) -
                        gsw_rho(S_average, Θ_range, pᵣ)
-    lines!(ax, Θ_range, Δρ_thres_mean; color = colours[i], label = "ΔΘ = $(ΔΘ)°C")
+    lines!(ax, Θ_range, Δρ_thres_mean; color = colours[i], label = "ΔΘ = -$(ΔΘ)°C")
 
     # error bands
     α_lower = @. gsw_alpha(S_range[1], Θ_range, pᵣ)
@@ -312,4 +312,4 @@ for (i, ΔΘ) ∈ enumerate(ΔΘ_vals)
 end
 axislegend(ax, position = :rb)
 fig
-save(joinpath(PLOTDIR, "updated_Δρ_thres_reversed_tcolour.png"), fig)
+save(joinpath(PLOTDIR, "updated_Δρ_thres_reversed_tcolour_negative.png"), fig)
