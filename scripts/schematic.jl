@@ -275,7 +275,7 @@ S_range = [S_average - 4, S_average + 4]
 Θ_range = range(-2, 30; length = 1000)
 pᵣ = 500
 ΔΘ_vals = (0.5, 1.0, 2.0, 3.0)
-colours = get(ColorSchemes.thermal, range(0, 0.8; length = 4))
+colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
 
 fig = Figure(size = (500, 500))
 ax = Axis(fig[1, 1];
@@ -312,4 +312,4 @@ for (i, ΔΘ) ∈ enumerate(ΔΘ_vals)
 end
 axislegend(ax, position = :rb)
 fig
-save(joinpath(PLOTDIR, "updated_Δρ_thres.png"), fig)
+save(joinpath(PLOTDIR, "updated_Δρ_thres_reversed_tcolour.png"), fig)

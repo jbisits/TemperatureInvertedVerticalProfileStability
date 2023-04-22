@@ -134,14 +134,15 @@ GOSHIP_num_obs
 
 ## Probability against ΔΘ
 fig = Figure(size = (500, 500))
+ΔΘ_vals = [0.5, 1.0, 2.0, 3.0]
 ax = Axis(fig[1, 1];
            title = "Probability less than Δρ' for increasing absolute temperature difference",
            xlabel = "Absolute temperature difference, |ΔΘ| (°C)",
            xscale = log,
+           xticks = string(ΔΘ_vals),
            ylabel = "ℙ(Δρₘˢ < Δρ' | ΔΘ)")
         #    xlabel = "ℙ(Δρₘˢ < Δρ' | ΔΘ)",
         #    ylabel = "Absolute temperature difference, |ΔΘ| (°C)")
-ΔΘ_vals = [0.5, 1.0, 2.0, 3.0]
 scatterlines!(ax, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCO")
 scatterlines!(ax, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
 # scatterlines!(ax, ECCO_cdf_Δρ_val, log.(ΔΘ_vals); label = "ECCO")

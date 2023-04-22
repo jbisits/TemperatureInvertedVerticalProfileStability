@@ -64,21 +64,22 @@ gdj = jldopen(GOSHIP_JOINED)
 gdj["0.5"]
 
 ΔΘ_thres = (0.5, 1.0, 2.0, 3.0)
-ΔΘ_colours = get(ColorSchemes.thermal, range(0, 0.8; length = 4))
+ΔΘ_colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
 
 ## Figure
 Θₗ_lims = (-1.88, 10)
 Θₗ_range = range(Θₗ_lims...; length = 100)
 Δρ_lims = (-0.2, 0.02)
 bin_width = 0.001
-full_fig = Figure(size = (800, 1000))
+full_fig = Figure(size = (1000, 1200))
 # scatter
-splot = full_fig[1, 1] = GridLayout()
+splot = full_fig[1:4, 1:2] = GridLayout()
 ax_splot = Axis(splot[1, 1];
                 xlabel = "Θ (ᵒC)",
                 xaxisposition = :top,
                 title = "(a) Maximum static density difference between two vertically\nspaced levels of a profile against temperature of lower level",
-                ylabel = "Δρ (kgm⁻³)")
+                ylabel = "Δρ (kgm⁻³)",
+                limits = (Θₗ_lims, Δρ_lims))
 data_count = Vector{Int64}(undef, length(ΔΘ_thres))
 for (i, key) ∈ enumerate(keys(gdj))
 
@@ -89,7 +90,7 @@ for (i, key) ∈ enumerate(keys(gdj))
     Δρˢ = collect(skipmissing(gdj[key]["Δρˢ"]))[find_inv]
     data_count[i] = length(Δρˢ)
 
-    scatter!(ax_splot, Θₗ, Δρˢ; color = ΔΘ_colours[i], markersize = 5)
+    scatter!(ax_splot, Θₗ, Δρˢ; color = ΔΘ_colours[i], markersize = 6)
 
     Sₗ_mean = mean(collect(skipmissing(gdj[key]["Sₗ"]))[find_inv])
     pₘ = 0.5 .* (collect(skipmissing(gdj[key]["pₗ"]))[find_inv] .+
@@ -103,17 +104,15 @@ for (i, key) ∈ enumerate(keys(gdj))
             label = "ΔΘ = $(ΔΘ_thres[i])ᵒC")
 end
 full_fig
-xlims!(ax_splot, Θₗ_lims)
-ylims!(ax_splot, Δρ_lims)
-Legend(splot[1, 2], ax_splot, "Δρ threshold for")
+Legend(splot[2, 1], ax_splot, "Δρ threshold for", orientation = :horizontal)
 full_fig
 data_count
 
 # pdf
-pdf_plots = full_fig[2:3, 1] = GridLayout()
-ax_pdf = [Axis(pdf_plots[i, j];
+pdf_plots = full_fig[1:4, 3] = GridLayout()
+ax_pdf = [Axis(pdf_plots[i, 1];
         xlabel = "Δρ (kgm⁻³)")
-      for i ∈ 1:2, j ∈ 1:2]
+      for i ∈ 1:4]
 less_thres = Vector{Float64}(undef, 4)
 over_thres = Vector{Float64}(undef, 4)
 data_count2 = Vector{Int64}(undef, length(ΔΘ_thres))
@@ -157,14 +156,17 @@ end
 full_fig
 pdf_lims = (-0.2, 0.01)
 for i ∈ 1:4
+    if i != 4
+        hidexdecorations!(ax_pdf[i], grid = false)
+    end
     xlims!(ax_pdf[i], pdf_lims)
 end
 less_thres
 over_thres
-rowsize!(full_fig.layout, 1, Auto(1.15))
+#rowsize!(full_fig.layout, 1, Auto(1.15))
 full_fig
 data_count == data_count2
 data_count
-#save(joinpath(PLOTDIR, "GOSHIP", "goship_sc_pdf.png"), full_fig)
+#save(joinpath(PLOTDIR, "GOSHIP", "goship_sc_pdf_v2.png"), full_fig)
 ##
 close(gdj)
