@@ -178,11 +178,9 @@ end
 
 output_path = joinpath(ECCO_DATA_ANALYSIS, "output_[0.5, 1.0]")
 output_files = glob("*.nc", output_path)
-ΔΘ_series = RasterSeries(output_files, Dim{:dates}(timestamps);
-                         child = Raster, name = "ΔΘ")
+ΔΘ_series = RasterSeries(output_files, Ti; child = Raster, name = "ΔΘ")
 
 for rs ∈ ΔΘ_series
-    set(rs, )
     map!(x -> ismissing(x) ? x : x ≤ -0.5 ? x : missing, rs, rs)
 end
 
@@ -206,18 +204,54 @@ heatmap(ΔΘ_proportion)
 
 rs_proportion = Raster(ΔΘ_proportion, (X(lookup(ΔΘ_series[1], :X)), Y(lookup(ΔΘ_series[1], :Y))))
 
+## Map figure for ECCO and GOSHIP
+
 using GeoMakie
-fig = Figure(size = (500, 500))
-ax = GeoAxis(fig[1, 1];
-             title = "Location and count of temperature\ninverted profiles for ECCO",
+fig = Figure(size = (1200, 800))
+ECCO_plot = fig[1:2, 1] = GridLayout()
+ax = GeoAxis(ECCO_plot[1, 1];
+             title = "(a) Location and count of temperature\ninverted profiles for ECCO",
              xlabel = "Longitude",
+             xticklabelrotation = pi/4,
              ylabel = "Latitude",
              coastlines = true)
-hm = heatmap!(ax, lookup(rs_proportion, :X), lookup(rs_proportion, :Y), ΔΘ_counts;
+hidedecorations!(ax)
+hm = heatmap!(ax, lookup(rs_proportion, :X), lookup(rs_proportion, :Y), ΔΘ_proportion;
               colormap = :batlow)
-#Colorbar(fig[1, 2], hm, label = "Number of profiles")
-Colorbar(fig[2, 1], hm, label = "Number of profiles", vertical = false, flipaxis = true)
+Colorbar(ECCO_plot[1, 1][2, 1], hm, label = "Concentration of profiles",
+         vertical = false, flipaxis = false, tickrotation = π / 4)
 fig
-#save(joinpath(PLOTDIR, "ECCO/Θ_inversion/profile_count.png"), fig)
-# create full figure by running corresponding geo makie map in goship_output.jl
-#save(joinpath(PLOTDIR, "combined_profile_location.png"), fig)
+
+## GOSHIP part of map
+const GOSHIP_DATA = joinpath(@__DIR__, "../data/analysis/goship.jld2")
+
+gd = jldopen(GOSHIP_DATA)
+
+ΔΘ_vals = (0.5, 1.0, 2.0, 3.0)
+oceans = ("atlantic", "indian", "pacific", "southern")
+GOSHIP_plot = fig[1:2, 2] = GridLayout()
+ax = GeoAxis(GOSHIP_plot[1, 1];
+             title = "(b) GO-SHIP Easy Ocean data product",
+             xlabel = "Longitude",
+             xticklabelrotation = pi/4,
+             coastlines = true)
+hidedecorations!(ax)
+for key ∈ keys(gd["1.0"])
+
+    Θᵤ = collect(skipmissing(gd["1.0"][key]["Θᵤ"]))
+    Θₗ = collect(skipmissing(gd["1.0"][key]["Θₗ"]))
+    lons = gd["1.0"][key]["lons"]
+    lats = gd["1.0"][key]["lats"]
+    sc = scatter!(ax, lons, lats; color = :grey, markersize = 5)
+    find_inv = findall(Θᵤ .< Θₗ)
+    lons_inv = lons[find_inv]
+    lats_inv = lats[find_inv]
+    scinv = scatter!(ax, lons_inv, lats_inv; color = (:red, 0.5), markersize = 5)
+    Legend(GOSHIP_plot[1, 1][2, 1], [sc, scinv], ["CTD measurement", "Temperature inverted"],
+           orientation = :horizontal)
+
+end
+fig
+save(joinpath(PLOTDIR, "combined_profiles_nolabels.png"), fig)
+##
+close(gd)
