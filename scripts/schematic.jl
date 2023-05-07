@@ -257,14 +257,18 @@ wm_star = L"\left(S^{*},~\Theta^{*}\right)"
 text!(ax2, water_parcel_pos, text = wm_star, fontsize = 28, align = (:left, :center),
      color = :red)
 ## Stability
-text!(ax2, S[185], Θ[500]; text = "Statically stable,\nstable to cabbeling",
+text!(ax2, S[185], Θ[400]; text = "Statically stable",
       color = density_grad[1], fontsize)
 text!(ax2, S[900], Θ[50]; text = "Statically unstable", color = density_grad[end],
       align = (:right, :center), fontsize)
-text!(ax2, S[20], Θ[235]; text = "Statically stable,\nunstable to cabbeling",
+# text!(ax2, S[25], Θ[235]; text = "Unstable to cabbeling",
+#       color = density_grad[2], fontsize)
+# arrows!(ax2, [S[300]], [Θ[230]], [S[280]-S[200]], [Θ[1] - Θ[150]];
+#         lengthscale = 1.2, arrowcolor = density_grad[2], linecolor = density_grad[2])
+text!(ax2, S[30], Θ[25]; text = "Unstable to\ncabbeling",
       color = density_grad[2], fontsize)
-arrows!(ax2, [S[300]], [Θ[230]], [S[280]-S[200]], [Θ[1] - Θ[150]];
-        lengthscale = 1.2, arrowcolor = density_grad[2], linecolor = density_grad[2])
+arrows!(ax2, [S[200]], [Θ[50]], [1], [0];
+        lengthscale = 0.07, arrowcolor = density_grad[2], linecolor = density_grad[2])
 arrows!(ax2, [S[1]], [Θ[1]], [1], [0]; lengthscale = 0.399)
 arrows!(ax2, [S[1]], [Θ[1]], [0], [1]; lengthscale = 3.75)
 
@@ -279,7 +283,7 @@ lines!(ax2, [cab_salinity+0.05, Sₗ], [ΔΘ_vec[1], Θₗ];
        color = haline_grad[3], linestyle = :dash)
 fig
 ##
-save(joinpath(PLOTDIR, "single_schematic_v2_mixing.png"), fig)
+save(joinpath(PLOTDIR, "single_schematic_v2_mixing_lesstext.png"), fig)
 
 ## Density difference threshold
 
