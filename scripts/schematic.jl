@@ -240,12 +240,12 @@ scatter!(ax2, [Sₗ], [Θₗ];  color = (:red, 0.8), label = L"\text{Deep water 
 ΔΘ = 2
 S_ΔΘ = [Sₗ - (αₗ / βₗ) * ΔΘ]
 ΔΘ_vec = [Θₗ - ΔΘ]
+Θ_ΔΘ = findfirst(iso_Θ .>= -1.5)
 cab_salinity = 0.5 * (iso_S[Θ_ΔΘ] + S_ΔΘ[1])
 # bracket
 bracket!(ax2, Sₗ, Θₗ, Sₗ, ΔΘ_vec[1]; text = L" ΔΘ", width = 25, rotation = 0, fontsize = 28)
-hlines!(ax2, ΔΘ_vec[1], xmin = 0.315, xmax = 0.74, color = (:black, 0.5), linestyle = :dash)
+hlines!(ax2, ΔΘ_vec[1], xmin = 0.315, xmax = 0.74, color = (:black, 0.5), linestyle = :dot)
 scatter!(ax2, [cab_salinity] .-0.05, ΔΘ_vec; label = L"\text{Stable}", color = haline_grad[1])
-Θ_ΔΘ = findfirst(iso_Θ .>= -1.5)
 scatter!(ax2, [cab_salinity], ΔΘ_vec; label = L"\text{Unstable to cabbeling}", color = haline_grad[2])
 unstable_salinity = cab_salinity + 0.05
 scatter!(ax2, [unstable_salinity], ΔΘ_vec; label = L"\text{Statically unstable}", color = haline_grad[3])
@@ -261,17 +261,25 @@ text!(ax2, S[185], Θ[500]; text = "Statically stable,\nstable to cabbeling",
       color = density_grad[1], fontsize)
 text!(ax2, S[900], Θ[50]; text = "Statically unstable", color = density_grad[end],
       align = (:right, :center), fontsize)
-text!(ax2, S[100], Θ[235]; text = "Statically stable,\nunstable to cabbeling",
+text!(ax2, S[20], Θ[235]; text = "Statically stable,\nunstable to cabbeling",
       color = density_grad[2], fontsize)
-arrows!(ax2, [S[300]], [Θ[230]], [S[380]-S[200]], [Θ[100] - Θ[200]];
-        lengthscale = 0.77, arrowcolor = density_grad[2], linecolor = density_grad[2])
+arrows!(ax2, [S[300]], [Θ[230]], [S[280]-S[200]], [Θ[1] - Θ[150]];
+        lengthscale = 1.2, arrowcolor = density_grad[2], linecolor = density_grad[2])
 arrows!(ax2, [S[1]], [Θ[1]], [1], [0]; lengthscale = 0.399)
 arrows!(ax2, [S[1]], [Θ[1]], [0], [1]; lengthscale = 3.75)
 
 axislegend(ax2, position = (0.073, 0.95))
 fig
+## Mixing lines
+lines!(ax2, [cab_salinity-0.05, Sₗ], [ΔΘ_vec[1], Θₗ];
+      color = haline_grad[1], linestyle = :dash)
+lines!(ax2, [cab_salinity, Sₗ], [ΔΘ_vec[1], Θₗ];
+       color = haline_grad[2], linestyle = :dash)
+lines!(ax2, [cab_salinity+0.05, Sₗ], [ΔΘ_vec[1], Θₗ];
+       color = haline_grad[3], linestyle = :dash)
+fig
 ##
-save(joinpath(PLOTDIR, "single_schematic_v2.png"), fig)
+save(joinpath(PLOTDIR, "single_schematic_v2_mixing.png"), fig)
 
 ## Density difference threshold
 
