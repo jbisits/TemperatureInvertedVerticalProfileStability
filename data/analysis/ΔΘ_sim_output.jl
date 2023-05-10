@@ -28,7 +28,7 @@ p_ref = 0
 S₀, T₀ = [S_ts[:, 1, i] for i ∈ 1:length(S_ts[1, 1, :])],
          [T_ts[:, 1, i] for i ∈ 1:length(T_ts[1, 1, :])]
 sal_ic_vals_string = string.(round.([S₀[i][end] for i ∈ 1:num_ics]; digits = 3))
-ΔΘ_thres_vals = [0.5, 1.0, 2.0]
+ΔΘ_thres_vals = (0.5, 1.0, 2.0)
 ############################################################################################
 ## Initial conditions for the simulation
 ############################################################################################
@@ -171,6 +171,42 @@ ic_plot
 #        orientation = :horizontal, nbanks = 3)
 # ic_plot
 
+## Static density difference
+density_grad = get(ColorSchemes.dense, range(0.25, 1, length = 3))
+fig = Figure(size = (500, 500))
+ax = Axis(fig[1, 1];
+          title = "Static density difference for model initial conditions",
+          xlabel = "ΔΘ (°C)",
+          ylabel = "Δσ₀ (kgm⁻³)")
+hlines!(ax, 0; color = :black)
+for (j, sim) ∈ enumerate(simulations)
+    sim_output_ = joinpath(SIM_DATADIR, sim)
+    saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
+    S_ts_, T_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"]
+    close(saved_ts)
+    Θₗ_ = [T_ts_[80, 1, i] for i ∈ 1:num_ics]
+    Sₗ_ = [S_ts_[80, 1, i] for i ∈ 1:num_ics]
+    Θᵤ_ = [T_ts_[81, 1, i] for i ∈ 1:num_ics]
+    Sᵤ_ = [S_ts_[81, 1, i] for i ∈ 1:num_ics]
+
+    αₗ_ = gsw_alpha.(Sₗ_, Θₗ_, p_ref)
+    βₗ_ = gsw_beta.(Sₗ_, Θₗ_, p_ref)
+
+    Δρ_thres = @. gsw_rho(Sₗ_ - (αₗ_ / βₗ_) * ΔΘ_thres_vals[j],
+                        Θₗ_ - ΔΘ_thres_vals[j], p_ref) -
+                gsw_rho(Sₗ_, Θₗ_, p_ref)
+    Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
+    hlines!(ax, Δρ_thres; linestyle = expt_ls[j], color = :black,
+            label = "initial ΔΘ = -$(ΔΘ_thres_vals[j])°C")
+    scatter!(ax, fill(ΔΘ_thres_vals[j], 2), Δρ_static;
+             color = density_grad[1:2])
+             #color = reverse(ic_colour[:, j]))
+    if j == 3
+        axislegend(ax, ax, "Δρ threshold for"; position = (0, 0.5), orientation = :horizontal, nbanks = 4)
+    end
+end
+fig
+save(joinpath(PLOTDIR, "simulations/model_dd.png"), fig)
 ############################################################################################
 ## Diffusivity time series from the simulation
 ############################################################################################
@@ -241,14 +277,16 @@ end
 σ₀_fig
 
 ## Only unstable
-σ₀_fig = Figure(resolution = (850, 1200))
+σ₀_fig = Figure(resolution = (600, 1200))
+z = -497.5:5:-2.5
 z_range = 61:100
 ax = [Axis(σ₀_fig[j, 1],
         xlabel = "Time (days)",
         xaxisposition = :top,
         ylabel = "Depth (metres)",
         limits = ((0, 60), (-200, -5))) for j ∈ 1:3]
-ΔΘ_vals = [0.5, 1.0, 2.0]
+ΔΘ_vals = (0.5, 1.0, 2.0)
+letter_labels = ("(a)", "(b)", "(c)", "(d)")
 for (j, sim) ∈ enumerate(simulations)
 
     sim_output_ = joinpath(SIM_DATADIR, sim)
@@ -259,27 +297,41 @@ for (j, sim) ∈ enumerate(simulations)
 
     sal_ics = round.(S_ts_[end, 1, end]; digits = 4)
 
-    ax[j].title = "Density anomaly - initial salintiy in ML = $(sal_ics),\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
+    ax[j].title = "$(letter_labels[j]) Density anomaly - initial ΔΘ at interface = -$(ΔΘ_vals[j])°C"
     hm = heatmap!(ax[j], t, z[z_range], σₒ_ts[:, :, 2]'; colormap = :dense)
+    reduced_z = z[z_range]
+    upper = findfirst.(isapprox.(κ_ts_[z_range, i, 2], 1.0; atol = 1e-5)
+                       for i ∈ eachindex(κ_ts_[1, :, 2]))
+    upper_idx = findall(isnothing, upper)
+    upper = map(x -> isnothing(x) ? NaN : x, upper)
+    upper_plot = [reduced_z[upper[i]] for i ∈ findall(!isnan, upper)] .- 2.5
+    lines!(ax[j], t[findall(!isnan, upper)], upper_plot; color = :white)
+    lower = findlast.(isapprox.(κ_ts_[z_range, i, 2], 1.0; atol = 1e-5)
+                       for i ∈ eachindex(κ_ts_[1, :, 2]))
+    lower_idx = findall(isnothing, lower)
+    lower = map(x -> isnothing(x) ? NaN : x, lower)
+    lower_plot = [reduced_z[lower[i]] for i ∈ findall(!isnan, lower)] .+ 2.5
+    lines!(ax[j], t[findall(!isnan, lower)], lower_plot; color = :white)
+    # band!(ax[j], t[findall(!isnan, lower)], lower_plot, upper_plot;
+    #       color = (:orange, 0.2))
+    if j != 1
+        hidexdecorations!(ax[j])
+    end
     if j == length(simulations)
         Colorbar(σ₀_fig[:, 2], hm, label = "σ₀ anomaly (kgm⁻3)")
     end
-    # low = [findfirst(κ_ts_[:, k, 2] .== 1.0) for k ∈ eachindex(κ_ts_[1, :, 2])]
-    # low = map(x -> isnothing(x) ? z[end] : z[x-1] + 2.5, low)
-    # high = [findlast(κ_ts_[:, k, 2] .== 1.0) for k ∈ eachindex(κ_ts_[1, :, 2])]
-    # high = map(x -> isnothing(x) ? z[end] : z[x+1] - 2.5, high)
-    # rangebars!(ax[j], t[1:10:end], low[1:10:end], high[1:10:end]; color = (:orange, 0.2))
 
 end
 σ₀_fig
-#save(joinpath(PLOTDIR, "simulations/density_anomaly_ts.png"), σ₀_fig)
+##save(joinpath(PLOTDIR, "simulations/density_anomalylines_ts_wdd.png"), σ₀_fig)
 
 ## Density difference at interface
-Δσ₀_fig = Figure(resolution = (850, 1200))
-ax = [Axis(Δσ₀_fig[j, 1],
+Δσ₀_fig = Figure(resolution = (500, 500))
+ax = Axis(σ₀_fig[4, 1];
+        title = "$(letter_labels[4]) Density difference at interface",
         xlabel = "Time (days)",
-        ylabel = "Δσ₀ (kgm⁻³)") for j ∈ 1:3]
-ΔΘ_vals = [0.5, 1.0, 2.0]
+        ylabel = "Δσ₀ (kgm⁻³)")
+ΔΘ_vals = (0.5, 1.0, 2.0)
 for (j, sim) ∈ enumerate(simulations)
 
     sim_output_ = joinpath(SIM_DATADIR, sim)
@@ -291,15 +343,18 @@ for (j, sim) ∈ enumerate(simulations)
 
     sal_ics = round.(S_ts_[end, 1, end]; digits = 4)
 
-    ax[j].title = "Density difference at interface - initial salintiy in ML = $(sal_ics),\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
-    lines!(ax[j], t, Δσ₀_ts)
-    scatter!(ax[j], [t[1]], [Δσ₀_ts[1]])
-
+    #ax[j].title = "Density difference at interface - initial salintiy in ML = $(sal_ics),\n initial ΔΘ between layers = $(ΔΘ_vals[j])°C"
+    lines!(ax, t, Δσ₀_ts; label = "Initial ΔΘ = -$(ΔΘ_vals[j])°C")
+    scatter!(ax, [t[1]], [Δσ₀_ts[1]])
+    if j == 3
+        axislegend(ax, ax, position = :rb)
+    end
 end
-Δσ₀_fig
+σ₀_fig
 
 ## Density ts with initial condition subtracted
 σ₀_anom_from_ic_fig = Figure(resolution = (850, 1200))
+z = -497.5:5:-2.5
 z_range = 61:100
 ax = [Axis(σ₀_anom_from_ic_fig[j, 1],
         xlabel = "Time (days)",
