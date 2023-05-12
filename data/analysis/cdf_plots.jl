@@ -134,10 +134,10 @@ GOSHIP_num_obs
 
 ## Probability against ΔΘ
 fig = Figure(size = (500, 500))
-ΔΘ_vals = [0.5, 1.0, 2.0, 3.0]
+ΔΘ_vals = [-0.5, -1.0, -2.0, -3.0]
 ax = Axis(fig[1, 1];
-           title = "Probability less than Δρ' for increasing absolute temperature difference",
-           xlabel = "ln(|ΔΘ|) (°C)",
+           title = "Increasing temperature difference effect on probability for fixed density difference",
+           xlabel = "ΔΘ (°C)",
            #xscale = log,
            #xticks = ΔΘ_vals,
            ylabel = "ℙ(Δρₘˢ < Δρ' | ΔΘ)")
@@ -145,8 +145,8 @@ ax = Axis(fig[1, 1];
         #    ylabel = "Absolute temperature difference, |ΔΘ| (°C)")
 # scatterlines!(ax, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCO")
 # scatterlines!(ax, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
-scatterlines!(ax, log.(ΔΘ_vals), ECCO_cdf_Δρ_val; label = "ECCO")
-scatterlines!(ax, log.(ΔΘ_vals), GOSHIP_cdf_Δρ_val; label = "GOSHIP")
-axislegend(ax, position = :lt)
+scatterlines!(ax, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCOv4r4")
+scatterlines!(ax, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
+axislegend(ax, position = :lb)
 fig
-save(joinpath(PLOTDIR, "prob_log_scale.png"), fig)
+save(joinpath(PLOTDIR, "prob_ΔΘ.png"), fig)

@@ -1,4 +1,4 @@
-using JLD2, ColorSchemes, Statistics
+using JLD2, ColorSchemes, Statistics, CairoMakie, GibbsSeaWater
 using .VerticalProfileStability
 
 ############################################################################################
@@ -172,6 +172,7 @@ ic_plot
 # ic_plot
 
 ## Static density difference
+expt_ls = (:dot, :dash, :dashdot)
 density_grad = get(ColorSchemes.dense, range(0.25, 1, length = 3))
 fig = Figure(size = (500, 500))
 ax = Axis(fig[1, 1];
@@ -198,11 +199,11 @@ for (j, sim) ∈ enumerate(simulations)
     Δρ_static = @. gsw_rho(Sᵤ_, Θᵤ_, p_ref) - gsw_rho(Sₗ_, Θₗ_, p_ref)
     hlines!(ax, Δρ_thres; linestyle = expt_ls[j], color = :black,
             label = "initial ΔΘ = -$(ΔΘ_thres_vals[j])°C")
-    scatter!(ax, fill(ΔΘ_thres_vals[j], 2), Δρ_static;
+    scatter!(ax, fill(-ΔΘ_thres_vals[j], 2), Δρ_static;
              color = density_grad[1:2])
              #color = reverse(ic_colour[:, j]))
     if j == 3
-        axislegend(ax, ax, "Δρ threshold for"; position = (0, 0.5), orientation = :horizontal, nbanks = 4)
+        axislegend(ax, ax, "Δρ threshold for"; position = (1, 0.1), orientation = :horizontal, nbanks = 4)
     end
 end
 fig
@@ -277,7 +278,7 @@ end
 σ₀_fig
 
 ## Only unstable
-σ₀_fig = Figure(resolution = (600, 1200))
+σ₀_fig = Figure(resolution = (600, 1000))
 z = -497.5:5:-2.5
 z_range = 61:100
 ax = [Axis(σ₀_fig[j, 1],
@@ -292,38 +293,40 @@ for (j, sim) ∈ enumerate(simulations)
     sim_output_ = joinpath(SIM_DATADIR, sim)
     saved_ts_ = jldopen(joinpath(sim_output_, "output_timeseries.jld2"))
     S_ts_, T_ts_, κ_ts_ = saved_ts_["S_ts"], saved_ts_["T_ts"], saved_ts_["κ_ts"]
-    close(saved_ts)
+    close(saved_ts_)
     σₒ_ts = gsw_sigma0.(S_ts_[z_range, :, :], T_ts_[z_range, :, :])
 
     sal_ics = round.(S_ts_[end, 1, end]; digits = 4)
 
     ax[j].title = "$(letter_labels[j]) Density anomaly - initial ΔΘ at interface = -$(ΔΘ_vals[j])°C"
-    hm = heatmap!(ax[j], t, z[z_range], σₒ_ts[:, :, 2]'; colormap = :dense)
+    if j != 1
+        hidexdecorations!(ax[j])
+    end
     reduced_z = z[z_range]
     upper = findfirst.(isapprox.(κ_ts_[z_range, i, 2], 1.0; atol = 1e-5)
                        for i ∈ eachindex(κ_ts_[1, :, 2]))
     upper_idx = findall(isnothing, upper)
     upper = map(x -> isnothing(x) ? NaN : x, upper)
     upper_plot = [reduced_z[upper[i]] for i ∈ findall(!isnan, upper)] .- 2.5
-    lines!(ax[j], t[findall(!isnan, upper)], upper_plot; color = :white)
     lower = findlast.(isapprox.(κ_ts_[z_range, i, 2], 1.0; atol = 1e-5)
                        for i ∈ eachindex(κ_ts_[1, :, 2]))
     lower_idx = findall(isnothing, lower)
     lower = map(x -> isnothing(x) ? NaN : x, lower)
     lower_plot = [reduced_z[lower[i]] for i ∈ findall(!isnan, lower)] .+ 2.5
-    lines!(ax[j], t[findall(!isnan, lower)], lower_plot; color = :white)
-    # band!(ax[j], t[findall(!isnan, lower)], lower_plot, upper_plot;
-    #       color = (:orange, 0.2))
-    if j != 1
-        hidexdecorations!(ax[j])
-    end
+    p = Pattern('x'; width = 2, linecolor = :black)
+    rapid_diff_region = vcat(collect(zip(t[findall(!isnan, lower)], lower_plot)),
+                             reverse(collect(zip(t[findall(!isnan, upper)], upper_plot))))
+    # Plotting
+    poly!(ax[j], Point2f[rapid_diff_region...], color = p)
+    hm = heatmap!(ax[j], t, z[z_range], σₒ_ts[:, :, 2]'; colormap = (:dense, 0.9))
+
     if j == length(simulations)
         Colorbar(σ₀_fig[:, 2], hm, label = "σ₀ anomaly (kgm⁻3)")
     end
 
 end
 σ₀_fig
-##save(joinpath(PLOTDIR, "simulations/density_anomalylines_ts_wdd.png"), σ₀_fig)
+save(joinpath(PLOTDIR, "simulations/density_anomalylines_ts_hatch.png"), σ₀_fig)
 
 ## Density difference at interface
 Δσ₀_fig = Figure(resolution = (500, 500))
