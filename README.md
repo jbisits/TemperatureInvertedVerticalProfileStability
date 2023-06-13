@@ -11,4 +11,4 @@ julia> ] # to enter the package manager
 (VerticalProfileStability)> instantiate
 ```
 
-After this all code in the repository should be able to be executed and results viewed.
+After this all code in the repository should be able to be executed and results viewed (provided the correct data has been downloaded).
