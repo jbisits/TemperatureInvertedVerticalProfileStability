@@ -39,6 +39,7 @@ for (i, a) ∈ enumerate(ax)
     end
     #a.title = titles[i]
 end
-linkxaxes!()
+linkxaxes!(ax[1], ax[3])
 linkxaxes!(ax[2], ax[4])
+colsize!(fig.layout, 1, Relative(2/3))
 fig
