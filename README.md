@@ -1,6 +1,6 @@
 # Vertical profile stability
 
-Look at the stability of vertical profiles in the ocean to assess if cabbeling shapes the nature of profiles in the global ocean.
+Look at the stability of vertical profiles to investigate if cabbeling shapes the nature of profiles in the global ocean.
 
 To reproduce the results in the repository first clone the repo and change to the folder where it is saved.
 The project then needs to be activated and instantiated (build all required dependencies) to be used,
