@@ -15,15 +15,15 @@ After this all code in the repository should be able to be executed and results 
 
 # Data required
 
-The used for the analysis is from [ECCOv4r4](https://ecco-group.org/products-ECCO-V4r4.htm)[^1] project and the [GOSHIP easy ocean data product](https://cchdo.ucsd.edu/products/goship-easyocean)[^2].
+The data used for the analysis of the maximum static density difference of temperature inverted profiles is from [ECCOv4r4](https://ecco-group.org/products-ECCO-V4r4.htm)[^1] project and the [GOSHIP easy ocean data product](https://cchdo.ucsd.edu/products/goship-easyocean)[^2].
 
 ## ECCOv4r4
 
-The data used from ECCOv4r4 is the daily averaged potential temperature and practical salinity on the $0.5^{\circ}$ latitude-longitude grid.
+From ECCOv4r4 the daily averaged potential temperature and practical salinity on the $0.5^{\circ}$ latitude-longitude grid is used.
 
 ## GOSHIP
 
-The data used from GOSHIP is the reported profile data.
+From GOSHIP the reported profile data is used.
 
 [^1]: G. Forget et al. “ECCO version 4: An integrated framework for non-linear inverse modeling and global ocean state estimation”. In: Geoscientific Model Development 8.10 (Oct. 2015), pp. 3071–3104. issn: 19919603. doi: 10.5194/gmd-8-3071-2015.
 
