@@ -67,7 +67,8 @@ function tracer_solution(z::AbstractVector, C::Number, ΔC::Number, κ::Number,
 
 end
 
-t = 4
+##
+t = 1:3:10
 κₜ, κₛ = 1e-2, 1e-2
 initial_Θ = initial_tracer_heaviside(z, Θ₀ˡ, ΔΘ₀)
 Θ_sol = tracer_solution(z, Θ₀ˡ, ΔΘ₀, κₜ, t)
@@ -75,7 +76,18 @@ initial_S = initial_tracer_heaviside(z, S₀ˡ, ΔS₀)
 S_sol = tracer_solution(z, S₀ˡ, ΔS₀, κₛ, t)
 initial_σ₀ = gsw_sigma0.(initial_S, initial_Θ)
 σ₀_sol = gsw_sigma0.(S_sol, Θ_sol)
+lines(Θ_sol[:, 4], z)
+
 ##
+t = 3
+κₜ, κₛ = 1e-2, 1e-2
+initial_Θ = initial_tracer_heaviside(z, Θ₀ˡ, ΔΘ₀)
+Θ_sol = tracer_solution(z, Θ₀ˡ, ΔΘ₀, κₜ, t)
+initial_S = initial_tracer_heaviside(z, S₀ˡ, ΔS₀)
+S_sol = tracer_solution(z, S₀ˡ, ΔS₀, κₛ, t)
+initial_σ₀ = gsw_sigma0.(initial_S, initial_Θ)
+σ₀_sol = gsw_sigma0.(S_sol, Θ_sol)
+
 fig = Figure(size = (900, 400))
 ax = [Axis(fig[1, i]) for i ∈ 1:2]
 lines!(ax[1], initial_S, z; color = (:blue, 0.5), label = "Initial salinity")
