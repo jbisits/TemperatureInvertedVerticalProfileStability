@@ -117,3 +117,4 @@ hideydecorations!(ax[2], grid = false)
 linkyaxes!(ax[1], ax[2])
 colsize!(fig.layout, 1, Relative(3/5))
 fig
+save("plots/profile.png", fig)
