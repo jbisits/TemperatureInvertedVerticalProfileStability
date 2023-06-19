@@ -1,84 +1,107 @@
-using GibbsSeaWater, CairoMakie
+using GibbsSeaWater, CairoMakie, SpecialFunctions
 
-fig = Figure(size = (1200, 1200))
-ax = [Axis(fig[i, j]) for j ∈ 1:2, i ∈ 1:2]
-ax2 = [Axis(fig[i, 1]) for i ∈ 1:2]
-titles = ("Initial salt and temperature profiles", "Initial density profile",
-          "Post mixing salt and temperature profiles", "Post mixing density profile")
 res = 1000
 z = range(-50, 0; length = res)
-z_mid = sum(extrema(z)) / 2
-Sᵤ, Sₗ = 34.58565, 34.7
-ΔS = (Sᵤ - Sₗ) / 2
-S = vcat(fill(Sₗ, round(Int, res / 2)), fill(Sᵤ, round(Int, res / 2)))
-S_mixed = @. ΔS * tanh(z - z_mid) + Sₗ + ΔS
-Θᵤ, Θₗ = -1.5, 0.5
-ΔΘ = (Θᵤ - Θₗ) / 2
-Θ = vcat(fill(Θₗ, round(Int, res / 2)), fill(Θᵤ, round(Int, res / 2)))
-Θ_mixed = @. ΔΘ * tanh(z - z_mid) + Θₗ + ΔΘ
-σ₀ = round.(gsw_sigma0.(S, Θ); digits = 4)
-lines(σ₀, z)
-lines(S, z)
-lines(S_mixed, z)
-lines(Θ_mixed, z)
+offset = sum(extrema(z)) / 2
+S₀ˡ, Θ₀ˡ = 34.7, 0.5
+S₀ᵘ, Θ₀ᵘ = 34.58565, -1.5
+ΔS₀, ΔΘ₀ = S₀ᵘ -S₀ˡ, Θ₀ᵘ - Θ₀ˡ
 
-σ₀_mixed = round.(gsw_sigma0.(S_mixed, Θ_mixed); digits = 4)
-lines(σ₀_mixed, z)
+"""
+    initial_tracer_heaviside(z::AbstractVector, C::Number, ΔC::Number)
+Modified Heaviside function for initial condition of a tracer with depth. The offset of the
+Heaviside function is calculated from the `extrema` of the depth array `z`.
 
-plot_vars = (S, σ₀, S_mixed, σ₀_mixed)
-plot_vars2 = (Θ, Θ_mixed)
-counter = 1
-for (i, a) ∈ enumerate(ax)
-    lines!(a, plot_vars[i], z;
-          color = isodd(i) ? :blue : :orange,
-          linestyle = isodd(i) ? :dot : :solid)
-    a.xlabel = "Salinity (gkg⁻¹)"
-    a.ylabel = "z (m)"
-    if isodd(i)
-        a.xticklabelcolor = "blue"
-        lines!(ax2[counter], plot_vars2[counter], z; color = (:red, 0.5), linestyle = :dash)
-        ax2[counter].xticklabelcolor = "red"
-        ax2[counter].xaxisposition = :top
-        ax2[counter].xlabel = "Θ (°C)"
-        ax2[counter].xlabelcolor = :red
-        ax2[counter].title = titles[i]
-        xlims!(a, 34.55, 34.72)
-        a.xlabelcolor = :blue
-        counter += 1
+Function arguments:
+
+- `z` depth of the domain;
+- `C` tracer value in deeper part of the step;
+- `ΔC` difference in tracer between the steps.
+"""
+function initial_tracer_heaviside(z::AbstractVector, C::Number, ΔC::Number)
+
+    initial_values = similar(z)
+    offset = sum(extrema(z)) / 2
+    for i ∈ eachindex(z)
+        initial_values[i] = z[i] - offset < 0 ? C : C + ΔC
     end
-    if iseven(i)
-        a.title = titles[i]
-        a.xlabel = "σ₀ (kgm⁻³)"
-        xlims!(a, 27.705, 27.7135)
-        a.xticklabelrotation = π/4
-        hideydecorations!(a, grid = false)
-    end
+
+    return initial_values
+
 end
-linkxaxes!(ax[1], ax[3])
-linkxaxes!(ax[2], ax[4])
-colsize!(fig.layout, 1, Relative(3/5))
-fig
 
+"""
+    function tracer_solution(z::AbstractVector, C::Number, ΔC::Number,
+                             t::Union{AbstractVector, Number})
+Solution to the heat equation for a tracer concentration field `C` subject to initial
+conditions that are a Heaviside (or modified Heaviside) step function. Returned is a matrix
+with the solutions at each depth level down the column and the each column being a time step.
+
+Function arguments:
+
+- `z` depth of the domain;
+- `C` tracer value in deeper part of the step;
+- `ΔC` difference in tracer between the steps;
+- `κ` the diffusivity of the tracer;
+- `t` time at which to evaluate the solution, can either be a `Vector` of time steps or just
+a number.
+"""
+function tracer_solution(z::AbstractVector, C::Number, ΔC::Number, κ::Number,
+                         t::Union{AbstractVector, Number})
+
+    offset = sum(extrema(z)) / 2
+    res = typeof(t) <: Number ? Array{Float64}(undef, length(z)) :
+                                Array{Float64}(undef, length(z), length(t))
+
+    if typeof(t) <: Number
+        for i ∈ eachindex(z)
+            res[i] = C + 0.5 * ΔC * (1 + erf((z[i] - offset) / sqrt(4 * κ * t)))
+        end
+    else
+        for i ∈ eachindex(z), j ∈ eachindex(t)
+            res[i, j] = C + 0.5 * ΔC * (1 + erf((z[i] - offset) / sqrt(4 * κ * t[j])))
+        end
+    end
+
+    return res
+
+end
+
+t = 4
+κₜ, κₛ = 1e-2, 1e-2
+initial_Θ = initial_tracer_heaviside(z, Θ₀ˡ, ΔΘ₀)
+Θ_sol = tracer_solution(z, Θ₀ˡ, ΔΘ₀, κₜ, t)
+initial_S = initial_tracer_heaviside(z, S₀ˡ, ΔS₀)
+S_sol = tracer_solution(z, S₀ˡ, ΔS₀, κₛ, t)
+initial_σ₀ = gsw_sigma0.(initial_S, initial_Θ)
+σ₀_sol = gsw_sigma0.(S_sol, Θ_sol)
 ##
-using SpecialFunctions
-heaviside(z) = z ≤ 0 ? 0 : 1
-heaviside(z, upper, lower) = z ≤ 0 ? lower : upper
-heaviside(z, z_mid, upper, lower) = z ≤ z_mid ? lower : upper
-Θ_evolution(z, t, ΔΘ, Θ_offset; κ = 1) = 0.5 * ΔΘ * (1 + erf(z / sqrt(4 * κ * t))) + Θ_offset
-S_evolution(z, t, ΔS, S_offset; κ = 1) = 0.5 * ΔS * (1 + erf(z / sqrt(4 * κ * t))) + S_offset
-z = range(-1, 1; length = 100)
-z2 = range(-2, 0; length = 100)
-t = range(0.1, 1; length = 5)
-S_res = Array{Float64}(undef, length(z), length(t))
-Θ_res = Array{Float64}(undef, length(z), length(t))
-for (i, z_) ∈ enumerate(z2), (j, t_) ∈ enumerate(t)
-    S_res[i, j] = S_evolution(z_ + 1, t_, 0.11435, 34.7, κ = 1e-2)
-    Θ_res[i, j] = Θ_evolution(z_ + 1, t_, -2, 0.5, κ = 1e-2)
-end
-S_res = hcat(heaviside.(z2, -1, 34.58565, 34.7))
-Θ_res = hcat(heaviside.(z2, -1, -1.5, 0.5), Θ_res)
-fig, ax = lines(Θ_res[:, 1], z2)
-for sol ∈ eachcol(Θ_res)
-    lines!(sol, z2)
-end
+fig = Figure(size = (900, 400))
+ax = [Axis(fig[1, i]) for i ∈ 1:2]
+lines!(ax[1], initial_S, z; color = (:blue, 0.5), label = "Initial salinity")
+lines!(ax[1], S_sol, z; color = :blue, linestyle = :dash, label = "Salinity after mixing")
+xlims!(ax[1], 34.55, 34.72)
+ax[1].xlabel = "Salinity (gkg⁻¹)"
+ax[1].xlabelcolor = :blue
+ax[1].xticklabelcolor = :blue
+ax[1].ylabel = "z (m)"
+ax2 = Axis(fig[1, 1];
+           xaxisposition = :top,
+           xticklabelcolor = :red,
+           xlabel = "Θ (°C)",
+           xlabelcolor = :red,
+           title = "Temperature and sanity profile")
+lines!(ax2, initial_Θ, z; color = (:red, 0.5), label = "Initial temeperature")
+lines!(ax2, Θ_sol, z; color = :red, linestyle = :dash, label = "Temperature after mixing")
+lines!(ax[2], initial_σ₀, z; color = (:black, 0.5), label = "Initial density")
+lines!(ax[2], σ₀_sol, z; color = :black, linestyle = :dash, label = "Density after mixing")
+ax[2].title = "Density profile"
+ax[2].xlabel = "σ₀ (kgm⁻³)"
+axislegend(ax2)
+axislegend(ax[1], position = :lb)
+axislegend(ax[2])
+hideydecorations!(ax[2], grid = false)
+
+linkyaxes!(ax[1], ax[2])
+colsize!(fig.layout, 1, Relative(3/5))
 fig
