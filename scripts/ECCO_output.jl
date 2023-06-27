@@ -204,6 +204,23 @@ heatmap(ΔΘ_proportion)
 
 rs_proportion = Raster(ΔΘ_proportion, (X(lookup(ΔΘ_series[1], :X)), Y(lookup(ΔΘ_series[1], :Y))))
 
+## Map for ECCO profile location
+using GeoMakie
+fontsize = 22
+fig = Figure(size = (600, 600); fontsize)
+ax = GeoAxis(fig[1, 1];
+             title = "(a) Location of temperature\ninverted profiles for ECCOv4r4 (year 2007)",
+             xlabel = "Longitude",
+             xticklabelrotation = pi/4,
+             ylabel = "Latitude",
+             coastlines = true)
+hidedecorations!(ax)
+hm = heatmap!(ax, lookup(rs_proportion, :X), lookup(rs_proportion, :Y), ΔΘ_proportion;
+              colormap = :batlow)
+Colorbar(fig[2, 1], hm, label = "Concentration of profiles",
+         vertical = false, flipaxis = false)
+fig
+save(joinpath(PLOTDIR, "ECCO_profiles.png"), fig)
 ## Map figure for ECCO and GOSHIP
 
 using GeoMakie

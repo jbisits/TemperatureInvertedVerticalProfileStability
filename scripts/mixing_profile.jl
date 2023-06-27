@@ -88,7 +88,9 @@ S_sol = tracer_solution(z, S₀ˡ, ΔS₀, κₛ, t)
 initial_σ₀ = gsw_sigma0.(initial_S, initial_Θ)
 σ₀_sol = gsw_sigma0.(S_sol, Θ_sol)
 
-fig = Figure(size = (900, 400))
+fontsize = 22
+labelsize = 16
+fig = Figure(size = (900, 400); fontsize)
 ax = [Axis(fig[1, i]) for i ∈ 1:2]
 lines!(ax[1], initial_S, z; color = (:blue, 0.5), label = "Initial salinity")
 lines!(ax[1], S_sol, z; color = :blue, linestyle = :dash, label = "Salinity after mixing")
@@ -109,12 +111,16 @@ lines!(ax[2], initial_σ₀, z; color = (:black, 0.5), label = "Initial density"
 lines!(ax[2], σ₀_sol, z; color = :black, linestyle = :dash, label = "Density after mixing")
 ax[2].title = "Density profile"
 ax[2].xlabel = "σ₀ (kgm⁻³)"
-axislegend(ax2)
-axislegend(ax[1], position = :lb)
-axislegend(ax[2])
+ax[2].xticklabelrotation = π/4
+xlims!(ax[2], minimum(initial_σ₀)-0.001, maximum(σ₀_sol)+0.001)
+axislegend(ax2; labelsize)
+axislegend(ax[1], position = :lb; labelsize)
+axislegend(ax[2]; labelsize)
 hideydecorations!(ax[2], grid = false)
 
 linkyaxes!(ax[1], ax[2])
 colsize!(fig.layout, 1, Relative(3/5))
 fig
+
+##
 save("plots/profile.png", fig)

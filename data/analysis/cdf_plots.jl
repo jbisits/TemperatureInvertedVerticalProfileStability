@@ -133,10 +133,10 @@ GOSHIP_num_obs
 ##
 
 ## Probability against ΔΘ
-fig = Figure(size = (500, 500))
+fig = Figure(size = (500, 500); fontsize)
 ΔΘ_vals = [-0.5, -1.0, -2.0, -3.0]
 ax = Axis(fig[1, 1];
-           title = "Increasing temperature difference effect on probability for fixed density difference",
+           title = "(g) Decreasing temperature difference effect on probability max \nstatic density difference is less than fixed density difference",
            xlabel = "ΔΘ (°C)",
            #xscale = log,
            #xticks = ΔΘ_vals,

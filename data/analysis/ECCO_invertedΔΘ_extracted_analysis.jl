@@ -199,7 +199,8 @@ area = begin
     rs_grid = Raster(grid_path, name = :area)
     rs_grid[X(1)]
 end
-full_fig = Figure(size = (800, 1000))
+fontsize = 22
+full_fig = Figure(size = (800, 1000); fontsize)
 # scatter
 splot = full_fig[1, 1] = GridLayout()
 ax_splot = Axis(splot[1, 1];
@@ -225,7 +226,7 @@ for (i, key) ∈ enumerate(keys(inv_data))
 end
 
 ylims!(ax_splot, Δρ_lims)
-Legend(splot[1, 2], ax_splot, "Δρ threshold for")
+Legend(splot[1, 2], ax_splot, "Δρ threshold for", nbanks = 2)
 
 # pdf
 pdf_plots = full_fig[2:3, 1] = GridLayout()
@@ -273,7 +274,7 @@ less_thres
 over_thres
 rowsize!(full_fig.layout, 1, Auto(1.15))
 #full_fig
-save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "ecco_sc_areaweightedpdf.png"), full_fig)
+save(joinpath(PLOTDIR, "ECCO", "Θ_inversion", "ecco_sc_areaweightedpdf_bigfont.png"), full_fig)
 ##
 ############################################################################################
 ## full fig - scatter and pdfs, 3 columns
@@ -287,7 +288,8 @@ area = begin
         rs_grid = Raster(grid_path, name = :area)
         rs_grid[X(1)]
        end
-full_fig = Figure(size = (1000, 1200))
+fontsize = 20
+full_fig = Figure(size = (1000, 1200); fontsize)
 # scatter
 splot = full_fig[1:4, 1:2] = GridLayout()
 ax_splot = Axis(splot[1, 1];
@@ -312,7 +314,7 @@ for (i, key) ∈ enumerate(keys(inv_data))
            label = "ΔΘ = -$(ΔΘ_range[1])ᵒC", linewidth = 2)
 
 end
-Legend(splot[2, 1], ax_splot, "Δρ threshold for", orientation = :horizontal)
+Legend(splot[2, 1], ax_splot, "Δρ threshold for", orientation = :horizontal, nbanks = 2)
 
 # pdf
 pdf_plots = full_fig[1:4, 3] = GridLayout()
@@ -358,7 +360,7 @@ for i ∈ 1:4
     xlims!(ax_pdf[i], Δρ_limits)
 end
 #full_fig
-save(joinpath(PLOTDIR, "ECCO/Θ_inversion/ecco_sc_pdf_0_2_negative.png"), full_fig)
+save(joinpath(PLOTDIR, "ECCO/Θ_inversion/ecco_sc_pdf_0_2_negative_bigfont.png"), full_fig)
 ##
 close(inv_data)
 
