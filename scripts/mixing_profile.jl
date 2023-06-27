@@ -104,7 +104,7 @@ ax2 = Axis(fig[1, 1];
            xticklabelcolor = :red,
            xlabel = "Θ (°C)",
            xlabelcolor = :red,
-           title = "Temperature and sanity profile")
+           title = "Temperature and salinity profile")
 lines!(ax2, initial_Θ, z; color = (:red, 0.5), label = "Initial temeperature")
 lines!(ax2, Θ_sol, z; color = :red, linestyle = :dash, label = "Temperature after mixing")
 lines!(ax[2], initial_σ₀, z; color = (:black, 0.5), label = "Initial density")
