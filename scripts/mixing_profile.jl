@@ -4,7 +4,8 @@ res = 1000
 z = range(-50, 0; length = res)
 offset = sum(extrema(z)) / 2
 S₀ˡ, Θ₀ˡ = 34.7, 0.5
-S₀ᵘ, Θ₀ᵘ = 34.58565, -1.5
+#S₀ᵘ, Θ₀ᵘ = 34.58565, -1.5
+S₀ᵘ, Θ₀ᵘ = 34.564, -1.5
 ΔS₀, ΔΘ₀ = S₀ᵘ -S₀ˡ, Θ₀ᵘ - Θ₀ˡ
 
 """
@@ -79,7 +80,7 @@ initial_σ₀ = gsw_sigma0.(initial_S, initial_Θ)
 lines(Θ_sol[:, 4], z)
 
 ##
-t = 3
+t = 20
 κₜ, κₛ = 1e-2, 1e-2
 initial_Θ = initial_tracer_heaviside(z, Θ₀ˡ, ΔΘ₀)
 Θ_sol = tracer_solution(z, Θ₀ˡ, ΔΘ₀, κₜ, t)
@@ -123,4 +124,4 @@ colsize!(fig.layout, 1, Relative(3/5))
 fig
 
 ##
-save("plots/profile.png", fig)
+save("plots/profile2.png", fig)
