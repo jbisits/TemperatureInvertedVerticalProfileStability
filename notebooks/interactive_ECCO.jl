@@ -59,9 +59,9 @@ begin
 	day_slider = @bind day PlutoUI.Slider(days, show_value = true)
 	r = Raster(ECCO_files[1], name = :SALT)
 	x, y, z = lookup(r, X), lookup(r, Y), lookup(r, Z)
-	long_choose = @bind long TextField()
+	long_choose = @bind long TextField(default = "0")
 	#long_choose = @bind long Select(x)
-	lat_choose = @bind lat TextField()
+	lat_choose = @bind lat TextField(default = "-60")
 	#lat_choose = @bind lat Select(y)
 	depth_choose = @bind depth Select(z)
 	nothing
