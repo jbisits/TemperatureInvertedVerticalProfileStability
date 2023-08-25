@@ -34,7 +34,7 @@ The difference is that when (global) variables are changed in a cell, **Pluto.jl
 """
 
 # ╔═╡ 49e79b9f-bfcc-478e-90ff-6b1ee9ed5344
-N = 20
+N = -10
 
 # ╔═╡ 1101a1bb-5640-4459-86d6-3b8ff5b96ce6
 N^2
