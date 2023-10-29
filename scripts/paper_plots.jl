@@ -398,7 +398,7 @@ density_grad = get(ColorSchemes.dense, range(0.25, 1, length = 3))
 fig = Figure(size = (500, 500))
 xtickposition = -2:0
 ax = Axis(fig[1, 1];
-          title = "Initial density difference between the two layers of the 1D model",
+          title = "Initial static density difference at model interface",
           xlabel = "Initial ΔΘ (°C) between model layers",
           xticks = (xtickposition, string.([-2, -1, -0.5])),
           ylabel = "Δσ₀ (kgm⁻³)")
