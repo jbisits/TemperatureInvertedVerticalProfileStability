@@ -17,7 +17,7 @@ publication_theme = Theme(font="CMU Serif", fontsize = 20,
                                 xtickalign = 1, ytickalign = 1,
                                 yticksize = 10, xticksize = 10),
                           Legend=(framecolor = (:black, 0.5),
-                                  bgcolor = (:white, 0.5),
+                                  backgroundcolor = (:white, 0.5),
                                   labelsize = 20),
                           Colorbar=(ticksize=16,
                                     tickalign=1,
@@ -756,3 +756,58 @@ axislegend(ax, position = :lb)
 fig
 ##
 save(joinpath(PAPER_PATH, "fig8_probΔΘ.png"), fig)
+
+############################################################################################
+## Figure 8 alternative
+############################################################################################
+inv_data = jldopen(EXTRACTED_DATA_INV)
+Δρ_limits = (-0.4, 0.01)
+Δρ_val = -0.04
+bin_width = 0.0001
+colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
+area = begin
+        grid_path = joinpath(@__DIR__, "../data/observations/ECCO_grid/GRID_GEOMETRY_ECCO_V4r4_latlon_0p50deg.nc")
+        rs_grid = Raster(grid_path, name = :area)
+        rs_grid[X(1)]
+       end
+
+fig = Figure(size = (500, 1000))
+ax_pdf = Axis(fig[1, 1];
+        xlabel = "Δρ (kgm⁻³)",
+        title = "(a) PDFs for the four temperature inversions")
+
+for (i, key) ∈ enumerate(keys(inv_data))
+
+    Θₗ = inv_data[key]["Θₗ"]
+    Δρˢ = collect(skipmissing(inv_data[key]["Δρˢ"]))
+    lats = inv_data[key]["lats"]
+    ΔΘ_range = inv_data[key]["ΔΘ_range"]
+    Δρ_thres = inv_data[key]["Δρ_thres"]
+
+    Δρ_thres_mean = mean(Δρ_thres)
+    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+    area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
+    hist_fit = fit(Histogram, Δρˢ, area_weights_, hist_edges)
+    hist_fit = normalize(hist_fit; mode = :pdf)
+    #hist!(ax_pdf[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
+    plot!(ax_pdf, hist_fit; color = (colours[i], 0.8), label = " ΔΘ = -$(ΔΘ_range[1])°C")
+
+end
+vlines!(ax_pdf, Δρ_val, color = :red, linestyle = :dash, label = "Fixed Δρ'")
+xlims!(ax_pdf, Δρ_limits)
+ylims!(ax_pdf, 0, 11)
+axislegend(ax_pdf, position = :lt, nbanks = 2)
+fig
+
+ΔΘ_vals = [-0.5, -1.0, -2.0, -3.0]
+ax_ecdf = Axis(fig[2, 1];
+           title = "(b) Temperature inversion effect on stratification",
+           xlabel = L"ΔΘ~(°C~)",
+           ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ'~|~ΔΘ\right)")
+scatterlines!(ax_ecdf, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCOv4r4")
+scatterlines!(ax_ecdf, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
+axislegend(ax_ecdf, position = :lb)
+fig
+save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt.png"), fig)
+##
+close(inv_data)
