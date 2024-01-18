@@ -8,21 +8,20 @@ const EXTRACTED_DATA_INV = joinpath(@__DIR__, "../data/analysis/ECCO_invertedΔ�
 const GOSHIP_JOINED = joinpath(@__DIR__, "../data/analysis/goship_joined.jld2")
 const ONEDMODEL_SIMULATIONS = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0") .* "_tgrad"
 const PAPER_PLOTS_PATH = joinpath(@__DIR__, "../plots/paper/")
-const PAPER_PATH = joinpath(@__DIR__, "../../../Papers/PhD-paper1-CabbelingInstability/Plots_v4/")
+const PAPER_PATH = joinpath(@__DIR__, "../../../Papers/PhD-paper1-CabbelingInstability")
 
 publication_theme = Theme(font="CMU Serif", fontsize = 20,
                           Axis=(titlesize = 22,
                                 xlabelsize = 20, ylabelsize = 20,
                                 xgridstyle = :dash, ygridstyle = :dash,
-                                xtickalign = 1, ytickalign = 1,
-                                yticksize = 10, xticksize = 10),
+                                xtickalign = 0, ytickalign = 0,
+                                yticksize = 7.5, xticksize = 7.5),
                           Legend=(framecolor = (:black, 0.5),
                                   backgroundcolor = (:white, 0.5),
                                   labelsize = 20),
                           Colorbar=(ticksize=16,
                                     tickalign=1,
-                                    spinewidth=0.5),
-                        )
+                                    spinewidth=0.5))
 set_theme!(publication_theme)
 
 ############################################################################################
@@ -445,7 +444,6 @@ z = -497.5:5:-2.5
 z_range = 61:100
 ax = [Axis(σ₀_fig[j, 1],
         xlabel = "Time (days)",
-        xtickcolor = :white,
         ylabel = "Depth (metres)",
         limits = ((0, 60), (-200, -5))) for j ∈ 1:3]
 ΔΘ_vals = (0.5, 1.0, 2.0)
@@ -483,7 +481,7 @@ for (j, sim) ∈ enumerate(ONEDMODEL_SIMULATIONS)
     poly!(ax[j], Point2f[rapid_diff_region...], color = p)
     hm = heatmap!(ax[j], t, z[z_range], σₒ_ts[:, :, 2]'; colormap = (:dense, 0.9))
     if j == length(ONEDMODEL_SIMULATIONS)
-        Colorbar(σ₀_fig[4, 1], hm, label = "σ₀ anomaly (kgm⁻3)", vertical = false,
+        Colorbar(σ₀_fig[4, 1], hm, label = "σ₀ anomaly (kgm⁻³)", vertical = false,
                  flipaxis = false)
     end
 
@@ -694,7 +692,7 @@ over_thres
 full_fig
 data_count == data_count2
 data_count
-save(joinpath(PAPER_PLOTS_PATH, "fig7_GOSHIPpdfs.png"), full_fig)
+save(joinpath(PAPER_PATH, "fig7_GOSHIPpdfs.png"), full_fig)
 close(gdj)
 ##
 
@@ -774,7 +772,7 @@ area = begin
 fig = Figure(size = (500, 1000))
 ax_pdf = Axis(fig[1, 1];
         xlabel = "Δρ (kgm⁻³)",
-        title = "(a) PDFs for the four temperature inversions")
+        title = "(a) ECCOv4r4 pdfs")
 
 for (i, key) ∈ enumerate(keys(inv_data))
 
@@ -793,7 +791,7 @@ for (i, key) ∈ enumerate(keys(inv_data))
     plot!(ax_pdf, hist_fit; color = (colours[i], 0.8), label = " ΔΘ = -$(ΔΘ_range[1])°C")
 
 end
-vlines!(ax_pdf, Δρ_val, color = :red, linestyle = :dash, label = "Fixed Δρ'")
+vlines!(ax_pdf, Δρ_val, color = :red, linestyle = :dash, label = "Reference Δρ'")
 xlims!(ax_pdf, Δρ_limits)
 ylims!(ax_pdf, 0, 11)
 axislegend(ax_pdf, position = :lt, nbanks = 2)
@@ -809,5 +807,32 @@ scatterlines!(ax_ecdf, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
 axislegend(ax_ecdf, position = :lb)
 fig
 save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt.png"), fig)
-##
 close(inv_data)
+
+############################################################################################
+## Δρ vs ΔΘ
+############################################################################################
+Δρ = -0.06:0.001:0
+S = 34.9
+p = 500
+Θ_star = 1.0
+α_star = gsw_alpha(S, Θ_star, p)
+β_star = gsw_beta(S, Θ_star, p)
+m = α_star / β_star
+
+cabbeling =  @. Δρ + gsw_rho(S, Θ_star, p)
+static = gsw_rho(S, Θ_star, p)
+
+ΔΘ_vals = -3:0.005:1
+compute_cabbeling = @. gsw_rho(S + m * ΔΘ_vals, Θ_star + ΔΘ_vals, p)
+
+ΔΘ_cabbeling = [ΔΘ_vals[findfirst(cabbeling[i] .≤ compute_cabbeling)] for i ∈ eachindex(Δρ)]
+# ΔΘ_static = [ΔΘ_vals[findfirst(static .≤ compute_cabbeling)] for i ∈ eachindex(Δρ)]
+
+fig = Figure(size = (500, 500))
+ax = Axis(fig[1, 1], title = "Estimated temperature inversion",
+          xlabel = "Δρ (kgm⁻³)", ylabel = "ΔΘ (°C)")
+lines!(ax, Δρ, ΔΘ_cabbeling)
+# lines!(ax, Δρ, ΔΘ_static)
+fig
+#save(joinpath(PAPER_PATH, "fig9_Θinversion.png"), fig)
