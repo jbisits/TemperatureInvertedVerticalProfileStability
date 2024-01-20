@@ -3,8 +3,10 @@ using ColorSchemes, GeoMakie, Statistics, StatsBase
 using LinearAlgebra: normalize
 
 const GOSHIP_DATA = joinpath(@__DIR__, "../data/analysis/goship.jld2")
-const ECCO_DATA_PATH = joinpath(@__DIR__, "../data/analysis/output_[1.0, 2.0]")
-const EXTRACTED_DATA_INV = joinpath(@__DIR__, "../data/analysis/ECCO_invertedΔΘ_extracted_data.jld2")
+# const ECCO_DATA_PATH = joinpath(@__DIR__, "../data/analysis/output_[1.0, 2.0]")
+# const EXTRACTED_DATA_INV = joinpath(@__DIR__, "../data/analysis/ECCO_invertedΔΘ_extracted_data.jld2")
+const ECCO_DATA_PATH = joinpath(@__DIR__, "../data/analysis/output_1.0")
+const EXTRACTED_DATA_INV = joinpath(@__DIR__, "../data/analysis/ECCO_invertedΔΘ_extracted_data_fixedΔΘ.jld2")
 const GOSHIP_JOINED = joinpath(@__DIR__, "../data/analysis/goship_joined.jld2")
 const ONEDMODEL_SIMULATIONS = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0") .* "_tgrad"
 const PAPER_PLOTS_PATH = joinpath(@__DIR__, "../plots/paper/")
@@ -578,7 +580,7 @@ for i ∈ 1:4
     xlims!(ax_pdf[i], Δρ_limits)
 end
 close(inv_data)
-#full_fig
+# full_fig
 #
 save(joinpath(PAPER_PATH, "fig6_ECCOpdfs.png"), full_fig)
 

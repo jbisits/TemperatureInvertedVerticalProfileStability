@@ -1,6 +1,6 @@
 ## Saving files of variables from the monthly data
 const ECCO_DATA_ANALYSIS = joinpath(@__DIR__, "../data/analysis/")
-using Glob, Dates, JLD2
+using Glob, Dates, JLD2, Statistics
 using .VerticalProfileStability
 
 ECCO_data = glob("*.nc", ECCO_DATADIR)
@@ -51,8 +51,9 @@ series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
 ## Extract temperature inverted data from each data threshold and save to .jld2
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
-ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
-extracted_data = joinpath(ECCO_DATA_ANALYSIS, "ECCO_invertedΔΘ_extracted_data.jld2")
+# ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
+ΔΘ_thres = (0.5, 1.0, 2.0, 3.0)
+extracted_data = joinpath(ECCO_DATA_ANALYSIS, "ECCO_invertedΔΘ_extracted_data_fixedΔΘ.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
     # Data
     @info "Reading RasterSeries"
