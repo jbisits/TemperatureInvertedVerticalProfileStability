@@ -760,18 +760,21 @@ save(joinpath(PAPER_PATH, "fig8_probΔΘ.png"), fig)
 ############################################################################################
 ## Figure 8 alternative
 ############################################################################################
-inv_data = jldopen(EXTRACTED_DATA_INV)
+
 Δρ_limits = (-0.4, 0.01)
 Δρ_val = -0.04
 bin_width = 0.0001
 colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
+fig = Figure(size = (800, 1000))
+
+##
+inv_data = jldopen(EXTRACTED_DATA_INV)
 area = begin
         grid_path = joinpath(@__DIR__, "../data/observations/ECCO_grid/GRID_GEOMETRY_ECCO_V4r4_latlon_0p50deg.nc")
         rs_grid = Raster(grid_path, name = :area)
         rs_grid[X(1)]
        end
 
-fig = Figure(size = (500, 1000))
 ax_pdf = Axis(fig[1, 1];
         xlabel = "Δρ (kgm⁻³)",
         title = "(a) ECCOv4r4 pdfs")
@@ -796,20 +799,49 @@ end
 vlines!(ax_pdf, Δρ_val, color = :red, linestyle = :dash, label = "Reference Δρ'")
 xlims!(ax_pdf, Δρ_limits)
 ylims!(ax_pdf, 0, 11)
-axislegend(ax_pdf, position = :lt, nbanks = 2)
+#axislegend(ax_pdf, position = :lt, nbanks = 2)
+close(inv_data)
 fig
+##
+ΔΘ_range = (0.5, 1.0, 2.0, 3.0)
+bin_width = 0.001
+ax_goship = Axis(fig[1, 2];
+                xlabel = "Δρ (kgm⁻³)",
+                title = "(b) GOSHIP pdfs")
 
+gdj = jldopen(GOSHIP_JOINED)
+for (i, key) ∈ enumerate(keys(gdj))
+
+    Θₗ = collect(skipmissing(gdj[key]["Θₗ"]))
+    Θᵤ = collect(skipmissing(gdj[key]["Θᵤ"]))
+    find_inverted = Θᵤ .< Θₗ
+    Δρˢ = collect(skipmissing(gdj[key]["Δρˢ"]))[find_inverted]
+    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+
+    hist_fit = fit(Histogram, Δρˢ, hist_edges)
+    hist_fit = normalize(hist_fit; mode = :pdf)
+
+   plot!(ax_goship, hist_fit; color = (colours[i], 0.8), label = " ΔΘ = -$(ΔΘ_range[i])°C")
+
+end
+vlines!(ax_goship, Δρ_val, color = :red, linestyle = :dash, label = "Δρᵣ")
+xlims!(ax_goship, Δρ_limits)
+# axislegend(ax_goship, position = :lt, nbanks = 2)
+close(gdj)
+fig
+##
+Legend(fig[2, :],  ax_goship, orientation = :horizontal)
+##
 ΔΘ_vals = [-0.5, -1.0, -2.0, -3.0]
-ax_ecdf = Axis(fig[2, 1];
-           title = "(b) Temperature inversion effect on stratification",
+ax_ecdf = Axis(fig[3, :];
+           title = "(c) Temperature inversion effect on stratification",
            xlabel = L"ΔΘ~(°C~)",
-           ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ'~|~ΔΘ\right)")
+           ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ_{\mathrm{r}}~|~ΔΘ\right)")
 scatterlines!(ax_ecdf, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCOv4r4")
 scatterlines!(ax_ecdf, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
 axislegend(ax_ecdf, position = :lb)
 fig
-save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt.png"), fig)
-close(inv_data)
+save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt2.png"), fig)
 
 ############################################################################################
 ## Δρ vs ΔΘ
