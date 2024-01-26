@@ -798,7 +798,7 @@ for (i, key) ∈ enumerate(keys(inv_data))
 end
 vlines!(ax_pdf, Δρ_val, color = :red, linestyle = :dash, label = "Reference Δρ'")
 xlims!(ax_pdf, Δρ_limits)
-ylims!(ax_pdf, 0, 11)
+ylims!(ax_pdf; low = 0, high = nothing)
 #axislegend(ax_pdf, position = :lt, nbanks = 2)
 close(inv_data)
 fig
@@ -826,6 +826,7 @@ for (i, key) ∈ enumerate(keys(gdj))
 end
 vlines!(ax_goship, Δρ_val, color = :red, linestyle = :dash, label = "Δρᵣ")
 xlims!(ax_goship, Δρ_limits)
+ylims!(ax_goship; low = 0, high = nothing)
 # axislegend(ax_goship, position = :lt, nbanks = 2)
 close(gdj)
 fig
