@@ -7,25 +7,25 @@ ECCO_data = glob("*.nc", ECCO_DATADIR)
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 rs_series = RasterSeries(ECCO_data, Ti(timestamps); child = RasterStack)
 
-## ΔΘ_thres = 0.5
+## ΔΘ_thres ≥ 0.5
 ΔΘ_thres = 0.5
 mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
-## ΔΘ_thres = 1.0
+## ΔΘ_thres ≥ 1.0
 ΔΘ_thres = 1.0
 mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
-## ΔΘ_thres = 2.0
+## ΔΘ_thres ≥ 2.0
 ΔΘ_thres = 2.0
 mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")
 series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 
-## ΔΘ_thres = 3.0
+## ΔΘ_thres ≥ 3.0
 ΔΘ_thres = 3.0
 mkdir(joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres"))
 savepath = joinpath(ECCO_DATA_ANALYSIS, "output_$ΔΘ_thres")

@@ -273,7 +273,7 @@ function check_ΔΘ_thres(Θ::Vector, ΔΘ_thres::Float64)
 
     above_thres = false
 
-    if abs(Θ[1] - Θ[2]) > ΔΘ_thres
+    if abs(Θ[1] - Θ[2]) ≥ ΔΘ_thres
 
         above_thres = true
 
