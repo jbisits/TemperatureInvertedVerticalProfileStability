@@ -53,7 +53,7 @@ series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 # ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
 ΔΘ_thres = (0.5, 1.0, 2.0, 3.0)
-extracted_data = joinpath(ECCO_DATA_ANALYSIS, "ECCO_invertedΔΘ_extracted_data_fixedΔΘ.jld2")
+extracted_data = joinpath(ECCO_DATA_ANALYSIS, "ECCO_invertedΔΘ_extracted_data_fixedΔΘ_geq.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
     # Data
     @info "Reading RasterSeries"
