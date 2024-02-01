@@ -2,9 +2,10 @@
 # vertical profile.
 module MaximumDensityDifference
 
-using Rasters, OceanRasterConversions, GibbsSeaWater, MAT, NCDatasets
+using Rasters, OceanRasterConversions, GibbsSeaWater, MAT, NCDatasets, JLD2
 
-export series_max_Δρ, series2vec, get_lats, argo_max_Δρ, goship_max_Δρ, en4_max_Δρ
+export series_max_Δρ, series2vec, get_lats, argo_max_Δρ, goship_max_Δρ, en4_max_Δρ,
+       group_ecco_ΔΘ, group_goship_ΔΘ
 
 """
     function Δρ_cab(Sₐ::Vector, Θ::Vector, p::Vector)
@@ -688,6 +689,68 @@ function en4_max_Δρ(data_files::Vector{String}, ΔΘ_thres::Union{Float64, Vec
     return Dict("Δρˢ" => Δρˢ[find_nm], "Δρᶜ" => Δρᶜ[find_nm], "Θᵤ" => Θᵤ[find_nm],
                 "Θₗ" => Θₗ[find_nm], "pᵤ" => pᵤ[find_nm], "pₗ" => pₗ[find_nm],
                 "Sᵤ" => Sᵤ[find_nm], "Sₗ" => Sₗ[find_nm], "lats" => lat[find_nm])
+end
+"""
+    function group_ecco_ΔΘ(ecco_output::AbstractString)
+Group the maximum static density differences from `ecco_output` by the size of the
+temperature difference. The grouping is done over a ranges of temperature values.
+"""
+function group_ecco_ΔΘ(ecco_output::AbstractString)
+
+    ecco = jldopen(ecco_output)
+    temp_ranges = ((-1.5, -0.5), (-2.5, -1.5), (-3.5, -2.5), (-4.5, -3.5))
+    ΔΘ_keys = ("ΔΘ_0.5_1.5", "ΔΘ_1.5_2.5", "ΔΘ_2.5_3.5", "ΔΘ_3.5_4.5")
+    ΔΘ_dict = Dict{String, Vector}(key => Vector{Float64}(undef, 0) for key ∈ ΔΘ_keys)
+    Δρ_dict = Dict{String, Vector}(key => Vector{Float64}(undef, 0) for key ∈ ΔΘ_keys)
+
+    for k ∈ keys(ecco)
+
+        for (i, ΔΘ) ∈ enumerate(temp_ranges)
+
+            find_ΔΘ = findall(ΔΘ[1] .< ecco[k]["ΔΘ_vals"] .≤ ΔΘ[2])
+            append!(ΔΘ_dict[ΔΘ_keys[i]], ecco[k]["ΔΘ_vals"][find_ΔΘ])
+            append!(Δρ_dict[ΔΘ_keys[i]], ecco[k]["Δρˢ"][find_ΔΘ])
+
+        end
+
+    end
+
+    close(ecco)
+
+    return ΔΘ_dict, Δρ_dict
+
+end
+"""
+    function group_goship_ΔΘ(goship::AbstractString)
+Group the maximum static density differnce from `goship` by the size of the temperature
+difference. The grouping is done over ranges of temperature values.
+"""
+function group_goship_ΔΘ(goship_output::AbstractString)
+
+    goship = jldopen(goship_output)
+    temp_ranges = ((-1.5, -0.5), (-2.5, -1.5), (-3.5, -2.5), (-4.5, -3.5))
+    ΔΘ_keys = ("ΔΘ_0.5_1.5", "ΔΘ_1.5_2.5", "ΔΘ_2.5_3.5", "ΔΘ_3.5_4.5")
+    ΔΘ_dict = Dict{String, Vector}(key => Vector{Float64}(undef, 0) for key ∈ ΔΘ_keys)
+    Δρ_dict = Dict{String, Vector}(key => Vector{Float64}(undef, 0) for key ∈ ΔΘ_keys)
+
+    for k ∈ keys(goship)
+
+        for (i, ΔΘ) ∈ enumerate(temp_ranges)
+
+            ΔΘ_vals = collect(skipmissing(goship[k]["Θᵤ"] .- goship[k]["Θₗ"]))
+            Δρˢ = collect(skipmissing(goship[k]["Δρˢ"]))
+            find_ΔΘ = findall(ΔΘ[1] .< ΔΘ_vals .≤ ΔΘ[2])
+            append!(ΔΘ_dict[ΔΘ_keys[i]], ΔΘ_vals[find_ΔΘ])
+            append!(Δρ_dict[ΔΘ_keys[i]], Δρˢ[find_ΔΘ])
+
+        end
+
+    end
+
+    close(goship)
+
+    return ΔΘ_dict, Δρ_dict
+
 end
 
 end # module

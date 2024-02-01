@@ -845,6 +845,85 @@ fig
 save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt2.png"), fig)
 
 ############################################################################################
+## Sorted into 1° temperature ranges
+############################################################################################
+
+colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
+Δρᵣ = -0.04
+Δρ_limits = (-0.4, 0.01)
+ΔΘ_range = (0.5, 1.0, 2.0, 3.0)
+ΔΘ_keys = ("ΔΘ_0.5_1.5", "ΔΘ_1.5_2.5", "ΔΘ_2.5_3.5", "ΔΘ_3.5_4.5")
+ΔΘ_ranges = "ΔΘ ∈ " .* ["(-1.5°C, -0.5°C)", "(-2.5°C, -1.5°C)", "(-3.5°C, -2.5°C)", "(-4.5°C, -3.5°C)"]
+
+fig = Figure(size = (800, 1000))
+## ecco grouped by temperature range
+ecco_ΔΘ_grouped = group_ecco_ΔΘ(EXTRACTED_DATA_INV)
+ax_ecco = Axis(fig[1, 1];
+        xlabel = "Δρ (kgm⁻³)",
+        title = "(a) ECCOv4r4 pdfs")
+xlims!(ax_ecco, Δρ_limits)
+ecco_probs = Vector{Float64}(undef, 4)
+for (i, k) ∈ enumerate(ΔΘ_keys)
+
+    Δρˢ = ecco_ΔΘ_grouped[2][k]
+    bin_width = 0.0001
+    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+    # area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
+    hist_fit = fit(Histogram, Δρˢ, hist_edges)
+    hist_fit = normalize(hist_fit; mode = :pdf)
+    plot!(ax_ecco, hist_fit; color = (colours[i], 0.8))
+
+    fit_ecdf = ecdf(Δρˢ)
+    ecco_probs[i] = fit_ecdf(Δρᵣ)
+end
+vlines!(ax_ecco, -0.04, linestyle = :dash, color = :red, label = "Δρᵣ")
+axislegend(ax_ecco, position = :lt)
+fig
+ecco_probs
+## goship grouped by temperature range
+goship_ΔΘ_grouped = group_goship_ΔΘ(GOSHIP_JOINED)
+ax_goship = Axis(fig[1, 2];
+                xlabel = "Δρ (kgm⁻³)",
+                title = "(b) GOSHIP pdfs")
+xlims!(ax_goship, Δρ_limits)
+goship_probs = Vector{Float64}(undef, 4)
+for (i, k) ∈ enumerate(ΔΘ_keys)
+
+    Δρˢ = goship_ΔΘ_grouped[2][k]
+    bin_width = #=i < 3 ? 0.005 :=# 0.005
+    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+    # area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
+    hist_fit = fit(Histogram, Δρˢ, hist_edges)
+    hist_fit = normalize(hist_fit; mode = :pdf)
+    plot!(ax_goship, hist_fit; color = (colours[i], 0.8), label = ΔΘ_ranges[i])
+
+    fit_ecdf = ecdf(Δρˢ)
+    goship_probs[i] = fit_ecdf(Δρᵣ)
+end
+vlines!(ax_goship, -0.04, linestyle = :dash, color = :red)
+fig
+goship_probs
+##
+Legend(fig[2, :], ax_goship, orientation = :horizontal, nbanks = 2)
+fig
+## ecdf
+ΔΘ_vals = [0, -1.0, -2.0, -3.0]
+ax_ecdf = Axis(fig[3, :];
+           title = "(c) Temperature inversion effect on stratification",
+           ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ_{\mathrm{r}}~|~ΔΘ\right)")
+hidexdecorations!(ax_ecdf)
+# scatterlines!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, label = "ECCOv4r4",
+#               linestyle = :dash, markersize = 10)
+# scatterlines!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, label = "GOSHIP",
+#               linestyle = :dot, markersize = 10)
+lines!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, linestyle = :dot, label = "ECCOv4r4")
+scatter!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, markersize = 12)
+lines!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, linestyle = :dashdot, label = "GOSHIP")
+scatter!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, markersize = 12)
+axislegend(ax_ecdf, position = :cb)
+fig
+save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt3.png"), fig)
+############################################################################################
 ## Δρ vs ΔΘ
 ############################################################################################
 Δρ = -0.06:0.001:0

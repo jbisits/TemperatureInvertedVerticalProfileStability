@@ -273,3 +273,5 @@ fig
 save(joinpath(PLOTDIR, "combined_profiles_nolabels.png"), fig)
 ##
 close(gd)
+
+## Grouping by temperature difference
