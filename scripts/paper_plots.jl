@@ -750,8 +750,8 @@ ax = Axis(fig[1, 1];
            title = "Temperature difference effect on stratification",
            xlabel = L"ΔΘ~(°C~)",
            ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ'~|~ΔΘ\right)")
-scatterlines!(ax, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCOv4r4")
-scatterlines!(ax, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
+scatterlines!(ax, ΔΘ_vals, 1 .- ECCO_cdf_Δρ_val; label = "ECCOv4r4")
+scatterlines!(ax, ΔΘ_vals, 1 .- GOSHIP_cdf_Δρ_val; label = "GOSHIP")
 axislegend(ax, position = :lb)
 fig
 ##
@@ -833,14 +833,15 @@ fig
 ##
 Legend(fig[2, :],  ax_goship, orientation = :horizontal)
 ##
-ΔΘ_vals = [-0.5, -1.0, -2.0, -3.0]
+ΔΘ_vals = [0.0, -1.0, -2.0, -3.0]
 ax_ecdf = Axis(fig[3, :];
            title = "(c) Temperature inversion effect on stratification",
            xlabel = L"ΔΘ~(°C~)",
+           xtickformat = values -> string.([-3.0, -2.0, -1.0, -0.5]),
            ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ_{\mathrm{r}}~|~ΔΘ\right)")
-scatterlines!(ax_ecdf, ΔΘ_vals, ECCO_cdf_Δρ_val; label = "ECCOv4r4")
-scatterlines!(ax_ecdf, ΔΘ_vals, GOSHIP_cdf_Δρ_val; label = "GOSHIP")
-axislegend(ax_ecdf, position = :lb)
+scatterlines!(ax_ecdf, ΔΘ_vals, 1 .- ECCO_cdf_Δρ_val; label = "ECCOv4r4")
+scatterlines!(ax_ecdf, ΔΘ_vals, 1 .- GOSHIP_cdf_Δρ_val; label = "GOSHIP")
+axislegend(ax_ecdf, position = :lt)
 fig
 save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt2.png"), fig)
 
