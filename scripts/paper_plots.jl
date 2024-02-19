@@ -398,9 +398,10 @@ density_grad = get(ColorSchemes.dense, range(0.25, 1, length = 3))
 ΔΘ_thres_vals = (0.5, 1.0, 2.0)
 fig = Figure(size = (500, 500))
 xtickposition = -2:0
+p_ref = 0
 ax = Axis(fig[1, 1];
           title = "Initial static density difference at model interface",
-          xlabel = "Initial ΔΘ (°C) between model layers",
+          xlabel = "Initial ΔΘ (°C) at model interface",
           xticks = (xtickposition, string.([-2, -1, -0.5])),
           ylabel = "Δσ₀ (kgm⁻³)")
 hlines!(ax, 0; color = :black, linestyle = :dash)
