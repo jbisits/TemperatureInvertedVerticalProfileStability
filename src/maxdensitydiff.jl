@@ -464,7 +464,7 @@ end
 
 """
     function get_lats(series::RasterSeries, var::Symbol)
-Get the latitude at the non-missing values of a variabla `var` from a `RasterSeries`
+Get the latitude at the non-missing values of a variable `var` from a `RasterSeries`
 """
 function get_lats(series::RasterSeries, var::Symbol)
 
@@ -478,6 +478,20 @@ function get_lats(series::RasterSeries, var::Symbol)
     end
 
     return vcat(lats_vec_nm...)
+
+end
+function get_lons(series::RasterSeries, var::Symbol)
+
+    lon, lat = lookup(series[1][var], X), lookup(series[1][var], Y)
+    lons_vec = repeat(lon, outer = length(lat))
+    lons_vec_nm = []
+    for i ∈ eachindex(series)
+        var_vals = reshape(series[i][var], :)[:]
+        find = @. !ismissing(var_vals)
+        push!(lons_vec_nm, lons_vec[find])
+    end
+
+    return vcat(lons_vec_nm...)
 
 end
 

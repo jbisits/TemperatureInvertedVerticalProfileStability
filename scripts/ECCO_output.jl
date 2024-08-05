@@ -52,8 +52,8 @@ series_max_Δρ(rs_series, ΔΘ_thres, savepath)
 ## Extract temperature inverted data from each data threshold and save to .jld2
 timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
 # ΔΘ_thres = [[0.5, 1.0], [1.0, 2.0], [2.0, 3.0], 3.0]
-ΔΘ_thres = (0.5, 1.0, 2.0, 3.0)
-extracted_data = joinpath(ECCO_DATA_ANALYSIS, "ECCO_invertedΔΘ_extracted_data_fixedΔΘ_geq.jld2")
+ΔΘ_thres = (0.5,) #1.0, 2.0, 3.0)
+extracted_data = joinpath(ECCO_DATA_ANALYSIS, "test_ECCO_invertedΔΘ_extracted_data_fixedΔΘ_geq.jld2")
 for select_ΔΘ ∈ ΔΘ_thres
     # Data
     @info "Reading RasterSeries"
@@ -76,6 +76,7 @@ for select_ΔΘ ∈ ΔΘ_thres
     pᵤ = series2vec(output_series, :pᵤ)[find_inversion]
     p̄ = @. 0.5 * (pᵤ + pₗ)
     lats = get_lats(output_series, :Θₗ)[find_inversion]
+    lons = get_lons(output_series, :Θₗ)[find_inversion]
 
     # Temperature and pressure differences
     ΔΘ_vals = series2vec(output_series, :ΔΘ)[find_inversion]
@@ -104,6 +105,7 @@ for select_ΔΘ ∈ ΔΘ_thres
 
         file["ΔΘ_thres_$(select_ΔΘ)"] = Dict("Θₗ" => Θₗ, "Δρˢ" => Δρˢ, "Δρᶜ" => Δρᶜ,
                                              "Δρ_thres" => Δρ_thres, "lats" => lats,
+                                             "lons" => lons, "date" => date,
                                              "Θ_lower_range" => Θ_lower_range,
                                              "ΔΘ_range" => select_ΔΘ, "ΔΘ_vals" => ΔΘ_vals,
                                              "Δp_vals" => Δp_vals)

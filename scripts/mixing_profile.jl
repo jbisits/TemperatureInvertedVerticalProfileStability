@@ -5,7 +5,7 @@ z = range(-50, 0; length = res)
 offset = sum(extrema(z)) / 2
 S₀ˡ, Θ₀ˡ = 34.7, 0.5
 #S₀ᵘ, Θ₀ᵘ = 34.58565, -1.5
-S₀ᵘ, Θ₀ᵘ = 34.564, -1.5
+S₀ᵘ, Θ₀ᵘ = 34.58, -1.5
 ΔS₀, ΔΘ₀ = S₀ᵘ -S₀ˡ, Θ₀ᵘ - Θ₀ˡ
 
 """
@@ -124,4 +124,4 @@ colsize!(fig.layout, 1, Relative(3/5))
 fig
 
 ##
-save("plots/profile2.png", fig)
+save("plots/mixing_profile.png", fig)

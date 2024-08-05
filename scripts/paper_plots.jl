@@ -5,6 +5,7 @@ using LinearAlgebra: normalize
 const GOSHIP_DATA = joinpath(@__DIR__, "../data/analysis/goship.jld2")
 # const ECCO_DATA_PATH = joinpath(@__DIR__, "../data/analysis/output_[1.0, 2.0]")
 # const EXTRACTED_DATA_INV = joinpath(@__DIR__, "../data/analysis/ECCO_invertedΔΘ_extracted_data.jld2")
+const ECCO_TS_DATA_PATH = joinpath(@__DIR__, "../data/observations/ECCO_daily_mean_TS")
 const ECCO_DATA_PATH = joinpath(@__DIR__, "../data/analysis/output_1.0")
 const EXTRACTED_DATA_INV = joinpath(@__DIR__, "../data/analysis/ECCO_invertedΔΘ_extracted_data_fixedΔΘ_geq.jld2")
 const GOSHIP_JOINED = joinpath(@__DIR__, "../data/analysis/goship_joined.jld2")
@@ -52,9 +53,9 @@ iso_S = S_grid[find_iso] # salinity values for the isopycnal
 iso_Θ = Θ_grid[find_iso] # Θ values for the isopycnal
 S_linear = range(34.517, S[end-10]; length = length(iso_S))
 ## stability schematic plot, reverse order beceause of variables
-fig = Figure(resolution = (700, 700))
+fig = Figure(size = (700, 700))
 ax2 = Axis(fig[1, 1],
-        title = "Stability schematic",
+        title = "(a) Stability schematic",
         xlabel = "Absolute salinity",
         xticksvisible = false,
         xticklabelsvisible = false,
@@ -131,6 +132,163 @@ fig
 ##
 save(joinpath(PAPER_PATH, "fig1_schematic.png"), fig)
 
+#####################################################################################
+## Possible S-T profile to demonstrate
+#####################################################################################
+## data
+ECCO_files = glob("*.nc", ECCO_TS_DATA_PATH)
+series_path = "/Users/Joey/Documents/PhD data and code/VerticalProfileStability/scripts/../data/analysis/output_1.0"
+timestamps = Date(2007, 01, 01):Day(1):Date(2007, 12, 31)
+rs_s = RasterSeries(series_path, Ti(timestamps), child = RasterStack)
+
+extracted_data = jldopen(EXTRACTED_DATA_INV)
+          Δρˢ = extracted_data["ΔΘ_thres_1.0"]["Δρˢ"]
+          Δρᶜ = extracted_data["ΔΘ_thres_1.0"]["Δρᶜ"]
+computed_lats = extracted_data["ΔΘ_thres_1.0"]["lats"]
+Θ_lower_range = extracted_data["ΔΘ_thres_1.0"]["Θ_lower_range"]
+     Δρ_thres = extracted_data["ΔΘ_thres_1.0"]["Δρ_thres"]
+close(extracted_data)
+## Filter profiles
+Δρ_full = []
+Θᵤ_full = []
+Θₗ_full = []
+lons_full = []
+lats_full = []
+dates_full = []
+
+for t ∈ eachindex(timestamps)
+
+    Δρ = rs_s[t][:Δρ_static].data
+    replace!(Δρ, missing => NaN)
+    Δρ_cab = rs_s[t][:Δρ_cab].data
+    replace!(Δρ_cab, missing => NaN)
+    Θᵤ = rs_s[t][:Θᵤ].data
+    replace!(Θᵤ, missing => NaN)
+    Θₗ = rs_s[t][:Θₗ].data
+    replace!(Θₗ, missing => NaN)
+
+    find = findall(Θᵤ .< Θₗ)
+    lon = lookup(rs_s[1], X)
+    lat = lookup(rs_s[1], Y)
+    lon_grid = lon .* ones(length(lat))'
+    lat_grid = ones(length(lon)) .* lat'
+
+    Δρ_invΘ = vec(Δρ[find])
+    Δρ_invΘ_cab = vec(Δρ_cab[find])
+    Θₗ_ = vec(Θₗ[find])
+    Θᵤ_ = vec(Θᵤ[find])
+    longitudes = lon_grid[find]
+    latidiudes = lat_grid[find]
+    date = fill(timestamps[t], length(find))
+
+    push!(Δρ_full, Δρ_invΘ...)
+    push!(Θᵤ_full, Θᵤ_...)
+    push!(Θₗ_full, Θₗ_...)
+    push!(lons_full, longitudes...)
+    push!(lats_full, latidiudes...)
+    push!(dates_full, date...)
+
+end
+
+find_unstable = findall(Δρ_full .> 0)
+Δρ_full[find_unstable]
+Θₗ_full[find_unstable]
+
+##
+
+Θₗ_hist = fit(Histogram, Θₗ_full, Θ_lower_range)
+
+plot(Θₗ_hist)
+
+Θₗ_binidx = StatsBase.binindex.(Ref(Θₗ_hist), Θₗ_full)
+
+for i ∈ eachindex(Θ_lower_range)
+
+    match_Θₗ = findall(Θₗ_binidx .== i)
+    find_unstable = findall(Δρ_full[match_Θₗ] .> Δρ_thres[i])
+    println("$(i): $(length(find_unstable))")
+
+end
+## Take index = 21 => Θ_lower_range[21] = 0.543939393939394
+lower_idx = 25
+match_bins = findall(Θₗ_binidx .== lower_idx)
+find_cabbeling_unstable = findall(Δρ_full[match_bins] .> Δρ_thres[lower_idx])
+
+profile_idx = 7
+Δρ_full[match_bins][find_cabbeling_unstable[profile_idx]]
+
+long = lons_full[match_bins][find_cabbeling_unstable[profile_idx]]
+lat = lats_full[match_bins][find_cabbeling_unstable[profile_idx]]
+day = dates_full[match_bins][find_cabbeling_unstable[profile_idx]]
+Θₗ = Θₗ_full[match_bins][find_cabbeling_unstable[profile_idx]]
+Θᵤ = Θᵤ_full[match_bins][find_cabbeling_unstable[profile_idx]]
+##
+day_idx = findfirst(day .== timestamps)
+fig = Figure(size = (1800, 600))
+ax = [Axis(fig[1, i], xlabel = "S (psu)", xticklabelrotation = π / 4,  ylabel = "θ (°C)") for i ∈ 1:3]
+for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
+
+    rs = RasterStack(ECCO_files[d], name = (:SALT, :THETA))
+    S = vec(rs[:SALT][X(At(long)), Y(At(lat))].data)
+    T = vec(rs[:THETA][X(At(long)), Y(At(lat))].data)
+    S_plot = S[.!ismissing.(S)]
+    T_plot = T[.!ismissing.(S)]
+    z = lookup(rs, Z)[.!ismissing.(S)]
+    z_range = findall(z .> -750)
+
+    cmap = :viridis
+    plt = scatterlines!(ax[i], S_plot[z_range], T_plot[z_range], color = z[z_range],
+                       markercolormap = cmap, colormap = cmap, label = "ECCO profile")
+    ax[i].title = "$(timestamps[d])"
+
+    upper_idx = findfirst(T_plot .≥ Θᵤ)
+    lower_idx = isnothing(findfirst(T_plot .≥ Θₗ)) ? findmax(T_plot)[2] : findfirst(T_plot .≥ Θₗ)
+    if i != 3
+        scatter!(ax[i], [S[upper_idx]], [T[upper_idx]], color = :blue, marker = :cross,
+                label = L"Upper water$$")
+    end
+    scatter!(ax[i], [S[lower_idx]], [ T[lower_idx]], color = :red, marker = :cross,
+            label = L"(S^{*}, Θ^{*})")
+
+    zᵤ = z[upper_idx]
+    zₗ = z[lower_idx]
+    ẑ = -(zᵤ + zₗ) / 2
+
+    ρᵤ = gsw_rho(S[upper_idx], T[upper_idx], ẑ)
+    ρₗ = gsw_rho(S[lower_idx], T[lower_idx], ẑ)
+    ρᵤ - ρₗ
+
+    S_linear_range = range(minimum(skipmissing(S)), S[lower_idx], length = 50)
+    αₗ = gsw_alpha(S[lower_idx], T[lower_idx], ẑ)
+    βₗ = gsw_beta(S[lower_idx], T[lower_idx], ẑ)
+    Θ_linear = @. T[lower_idx] + (βₗ / αₗ) * (S_linear_range - S[lower_idx])
+    lines!(ax[i], S_linear_range, Θ_linear, label = L"Tangent to isopycnal at $(S^{*}, Θ^{*})$", color = :red, linestyle = :dash)
+
+    S_range = range(extrema(skipmissing(S))..., length = 1000)
+    T_range = range(extrema(skipmissing(T))..., length = 1000)
+
+    S_grid = S_range .* ones(length(S_range))'
+    T_grid = T_range' .* ones(length(T_range))
+
+    ρ = gsw_rho.(S_grid, T_grid, ẑ)
+
+    contour!(ax[i], S_range, T_range, ρ, levels = [ρₗ], label = L"Isopycnal at $(S^{*}, Θ^{*})$", color = :red, linestyle = :dot)
+    #axislegend(ax, position = :lt)
+
+    if d > day_idx-1
+        hideydecorations!(ax[i], grid = false)
+    end
+    if i == 3
+        Colorbar(fig[1, 4], limits = extrema(z[z_range]), colormap = cmap, label = "z (m)")
+    end
+end
+Label(fig[0, :], "Salinity-temperature profile at $(long)°E, $(lat)°N", font = :bold, fontsize = 22)
+Legend(fig[2, :], ax[1], orientation  = :horizontal, nbanks = 2)
+linkyaxes!(ax[1], ax[2])
+linkyaxes!(ax[1], ax[3])
+fig
+##
+save(joinpath(PAPER_PATH, "fig_singleTSprofile.png"), fig)
 ############################################################################################
 ## Density difference threshold, figure 2
 ############################################################################################
@@ -263,24 +421,6 @@ for key ∈ keys(gd["1.0"])
     lons_inv = lons[find_inv]
     lats_inv = lats[find_inv]
     scatter!(ax, lons_inv, lats_inv; color = :red, markersize = 3)
-    # if isequal(key, "southern")
-    #     marker = [MarkerElement(marker = :circle, color = :red)]
-    #     label = ["CTD profile measurement"]
-    #     Legend(GOSHIP_plot[2, 1], marker, label)
-    # end
-    # profile_location = zip(lons_inv, lats_inv)
-    # profile_count = zeros(Int64, length(profile_location))
-    # for k ∈ eachindex(lats_inv)
-    #     for (i, j) ∈ enumerate(profile_location)
-    #         if j == (lons_inv[k], lats_inv[k])
-    #             profile_count[k] += 1
-    #         end
-    #     end
-    # end
-    # scinv = scatter!(ax, lons_inv, lats_inv; colormap = :batlow, color = profile_count, markersize = 3)
-    # if isequal(key, "southern")
-    #     Colorbar(fig[2, 2], scinv, label = "Frequency")
-    # end
 end
 close(gd)
 
@@ -290,15 +430,6 @@ fig
 ##
 save(joinpath(PAPER_PATH, "fig3_profilelocation.png"), fig)
 ##
-# prof_loc = zip(gd["1.0"]["atlantic"]["lats"], gd["1.0"]["atlantic"]["lons"])
-# count = 1
-# for (i, j )∈ enumerate(prof_loc)
-#     if j == (gd["1.0"]["atlantic"]["lats"][1], gd["1.0"]["atlantic"]["lons"][1])
-#         println("match")
-#         count += 1
-#     end
-# end
-# count
 
 ############################################################################################
 ## Possible figure of ΔΘ and Δp distributions.
