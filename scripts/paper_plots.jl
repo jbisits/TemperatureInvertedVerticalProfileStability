@@ -224,8 +224,14 @@ day = dates_full[match_bins][find_cabbeling_unstable[profile_idx]]
 Θᵤ = Θᵤ_full[match_bins][find_cabbeling_unstable[profile_idx]]
 ##
 day_idx = findfirst(day .== timestamps)
-fig = Figure(size = (1800, 600))
-ax = [Axis(fig[1, i], xlabel = "S (psu)", xticklabelrotation = π / 4,  ylabel = "θ (°C)") for i ∈ 1:3]
+fig = Figure(size = (1500, 600))
+ax = [Axis(fig[1, i], xlabel = "Practical salinity (psu)", xticklabelrotation = π / 4,
+           ylabel = "Potential temperature (°C)") for i ∈ 1:3]
+Slimits = begin
+    rs = Raster(ECCO_files[day_idx-1], name = :SALT)
+    S = skipmissing(vec(rs[X(At(long)), Y(At(lat))].data))
+    extrema(S)
+end
 for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
 
     rs = RasterStack(ECCO_files[d], name = (:SALT, :THETA))
@@ -238,7 +244,8 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
 
     cmap = :viridis
     plt = scatterlines!(ax[i], S_plot[z_range], T_plot[z_range], color = z[z_range],
-                       markercolormap = cmap, colormap = cmap, label = "ECCO profile")
+                       markercolormap = cmap, colormap = cmap, markersize = 10,
+                       label = L"ECCO profile$$")
     ax[i].title = "$(timestamps[d])"
 
     upper_idx = findfirst(T_plot .≥ Θᵤ)
@@ -258,13 +265,13 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
     ρₗ = gsw_rho(S[lower_idx], T[lower_idx], ẑ)
     ρᵤ - ρₗ
 
-    S_linear_range = range(minimum(skipmissing(S)), S[lower_idx], length = 50)
+    S_linear_range = range(Slimits..., length = 50)
     αₗ = gsw_alpha(S[lower_idx], T[lower_idx], ẑ)
     βₗ = gsw_beta(S[lower_idx], T[lower_idx], ẑ)
     Θ_linear = @. T[lower_idx] + (βₗ / αₗ) * (S_linear_range - S[lower_idx])
-    lines!(ax[i], S_linear_range, Θ_linear, label = L"Tangent to isopycnal at $(S^{*}, Θ^{*})$", color = :red, linestyle = :dash)
+    lines!(ax[i], S_linear_range, Θ_linear, label = L"Tangent to isopycnal at $(S^{*}, Θ^{*})$", color = :grey, linestyle = :dash)
 
-    S_range = range(extrema(skipmissing(S))..., length = 1000)
+    S_range = range(Slimits..., length = 1000)
     T_range = range(extrema(skipmissing(T))..., length = 1000)
 
     S_grid = S_range .* ones(length(S_range))'
@@ -272,8 +279,7 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
 
     ρ = gsw_rho.(S_grid, T_grid, ẑ)
 
-    contour!(ax[i], S_range, T_range, ρ, levels = [ρₗ], label = L"Isopycnal at $(S^{*}, Θ^{*})$", color = :red, linestyle = :dot)
-    #axislegend(ax, position = :lt)
+    contour!(ax[i], S_range, T_range, ρ, levels = [ρₗ], label = L"Isopycnal at $(S^{*}, Θ^{*})$", color = :grey, linestyle = :dot)
 
     if d > day_idx-1
         hideydecorations!(ax[i], grid = false)
@@ -282,7 +288,7 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
         Colorbar(fig[1, 4], limits = extrema(z[z_range]), colormap = cmap, label = "z (m)")
     end
 end
-Label(fig[0, :], "Salinity-temperature profile at $(long)°E, $(lat)°N", font = :bold, fontsize = 22)
+Label(fig[0, :], "ECCO Salinity-temperature profile at $(long)°E, $(lat)°N", font = :bold, fontsize = 22)
 Legend(fig[2, :], ax[1], orientation  = :horizontal, nbanks = 2)
 linkyaxes!(ax[1], ax[2])
 linkyaxes!(ax[1], ax[3])
@@ -394,6 +400,9 @@ Colorbar(fig[1, 2], hm, label = "Frequency")
 # Box(fig[1, 1], color = (:red, 0.2), strokewidth = 0)
 # fig
 # colsize!(fig.layout, 2, Aspect(1, 0.2))
+
+# Scatter marker for unstable to cabbeling profile
+scatter!(ax, [lon], [lat], marker = :star5, color = :yellow, markersize = 18)
 fig
 ## GOSHIP part of map
 
@@ -428,7 +437,7 @@ colsize!(fig.layout, 2, Aspect(1, 0.5))
 colgap!(fig.layout, -50)
 fig
 ##
-save(joinpath(PAPER_PATH, "fig3_profilelocation.png"), fig)
+save(joinpath(PAPER_PATH, "fig3_profilelocation_withmarker.png"), fig)
 ##
 
 ############################################################################################
