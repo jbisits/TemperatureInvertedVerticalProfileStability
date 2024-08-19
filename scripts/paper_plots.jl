@@ -226,7 +226,7 @@ day = dates_full[match_bins][find_cabbeling_unstable[profile_idx]]
 day_idx = findfirst(day .== timestamps)
 fig = Figure(size = (1500, 600))
 ax = [Axis(fig[1, i], xlabel = "Practical salinity (psu)", xticklabelrotation = π / 4,
-           ylabel = "Potential temperature (°C)") for i ∈ 1:3]
+           ylabel = "Potential temperature (°C)",  width = 270, height = 420) for i ∈ 1:3]
 Slimits = begin
     rs = Raster(ECCO_files[day_idx-1], name = :SALT)
     S = skipmissing(vec(rs[X(At(long)), Y(At(lat))].data))
@@ -242,20 +242,8 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
     z = lookup(rs, Z)[.!ismissing.(S)]
     z_range = findall(z .> -750)
 
-    cmap = :viridis
-    plt = scatterlines!(ax[i], S_plot[z_range], T_plot[z_range], color = z[z_range],
-                       markercolormap = cmap, colormap = cmap, markersize = 10,
-                       label = L"ECCO profile$$")
-    ax[i].title = "$(timestamps[d])"
-
     upper_idx = findfirst(T_plot .≥ Θᵤ)
     lower_idx = isnothing(findfirst(T_plot .≥ Θₗ)) ? findmax(T_plot)[2] : findfirst(T_plot .≥ Θₗ)
-    if i != 3
-        scatter!(ax[i], [S[upper_idx]], [T[upper_idx]], color = :blue, marker = :cross,
-                label = L"Upper water$$")
-    end
-    scatter!(ax[i], [S[lower_idx]], [ T[lower_idx]], color = :red, marker = :cross,
-            label = L"(S^{*}, Θ^{*})")
 
     zᵤ = z[upper_idx]
     zₗ = z[lower_idx]
@@ -269,7 +257,7 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
     αₗ = gsw_alpha(S[lower_idx], T[lower_idx], ẑ)
     βₗ = gsw_beta(S[lower_idx], T[lower_idx], ẑ)
     Θ_linear = @. T[lower_idx] + (βₗ / αₗ) * (S_linear_range - S[lower_idx])
-    lines!(ax[i], S_linear_range, Θ_linear, label = L"Tangent to isopycnal at $(S^{*}, Θ^{*})$", color = :grey, linestyle = :dash)
+    lines!(ax[i], S_linear_range, Θ_linear, label = L"Tangent to isopycnal at $(S^{*}, Θ^{*})$", color = :red, linestyle = :dash)
 
     S_range = range(Slimits..., length = 1000)
     T_range = range(extrema(skipmissing(T))..., length = 1000)
@@ -279,22 +267,61 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
 
     ρ = gsw_rho.(S_grid, T_grid, ẑ)
 
-    contour!(ax[i], S_range, T_range, ρ, levels = [ρₗ], label = L"Isopycnal at $(S^{*}, Θ^{*})$", color = :grey, linestyle = :dot)
+    contour!(ax[i], S_range, T_range, ρ, levels = [ρₗ], label = L"Isopycnal at $(S^{*}, Θ^{*})$", color = :black, linestyle = :dot)
+
+    cmap = :viridis
+    plt = scatterlines!(ax[i], S_plot[z_range], T_plot[z_range], color = z[z_range],
+                       markercolormap = cmap, colormap = cmap, markersize = 7,
+                       label = L"ECCO profile$$")
+    text!(ax[i], 34.895, 1.15, text = "$(timestamps[d])", font = :bold, align = (:center, :center))
+    # ax[i].title = "$(timestamps[d])"
+
+    upper_idx = findfirst(T_plot .≥ Θᵤ)
+    lower_idx = isnothing(findfirst(T_plot .≥ Θₗ)) ? findmax(T_plot)[2] : findfirst(T_plot .≥ Θₗ)
+    if i != 3
+        scatter!(ax[i], [S[upper_idx]], [T[upper_idx]], color = :blue, marker = :cross,
+                label = L"Upper water$$")
+    end
+    scatter!(ax[i], [S[lower_idx]], [ T[lower_idx]], color = :red, marker = :cross,
+            label = L"(S^{*}, Θ^{*})")
 
     if d > day_idx-1
+        # Horizontal layout
         hideydecorations!(ax[i], grid = false)
     end
-    if i == 3
-        Colorbar(fig[1, 4], limits = extrema(z[z_range]), colormap = cmap, label = "z (m)")
+    # if i != length(ax)
+    #     # Vertical layout
+    #     hidexdecorations!(ax[i], grid = false, ticks = false)
+    # end
+    if i != 2
+        # Horizontal
+        hidexdecorations!(ax[i], grid = false, ticks = false, ticklabels = false)
+        # # Vertical
+        # hideydecorations!(ax[i], grid = false, ticks = false, ticklabels = false)
     end
+    if i == 3
+        # Horizontal layout
+        Colorbar(fig[1, 4], limits = extrema(z[z_range]), colormap = cmap, label = "z (m)")
+        # # Vertical layout
+        # Colorbar(fig[:, 2], limits = extrema(z[z_range]), colormap = cmap, label = "z (m)")
+    end
+    xlims!(ax[i], 34.87, 34.974)
+    ylims!(ax[i], 0, 1.2)
 end
 Label(fig[0, :], "ECCO Salinity-temperature profile at $(long)°E, $(lat)°N", font = :bold, fontsize = 22)
+# Horizontal
 Legend(fig[2, :], ax[1], orientation  = :horizontal, nbanks = 2)
 linkyaxes!(ax[1], ax[2])
 linkyaxes!(ax[1], ax[3])
+# # Vertical
+# Legend(fig[4, :], ax[1], orientation  = :horizontal, nbanks = 2)
+# linkxaxes!(ax[1], ax[2])
+# linkxaxes!(ax[1], ax[3])
+fig
+resize_to_layout!(fig)
 fig
 ##
-save(joinpath(PAPER_PATH, "fig_singleTSprofile.png"), fig)
+save(joinpath(PAPER_PATH, "fig_singleTSprofile_horizontal.png"), fig)
 ############################################################################################
 ## Density difference threshold, figure 2
 ############################################################################################
