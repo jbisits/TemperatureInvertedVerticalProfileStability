@@ -1,6 +1,9 @@
 using .VerticalProfileStability
+using JLD2, NCDatasets, CairoMakie, Rasters, Glob, Dates
 using ColorSchemes, GeoMakie, Statistics, StatsBase
 using LinearAlgebra: normalize
+
+##
 
 const GOSHIP_DATA = joinpath(@__DIR__, "../data/analysis/goship.jld2")
 # const ECCO_DATA_PATH = joinpath(@__DIR__, "../data/analysis/output_[1.0, 2.0]")
@@ -429,7 +432,7 @@ Colorbar(fig[1, 2], hm, label = "Frequency")
 # colsize!(fig.layout, 2, Aspect(1, 0.2))
 
 # Scatter marker for unstable to cabbeling profile
-scatter!(ax, [lon], [lat], marker = :star5, color = :yellow, markersize = 18)
+scatter!(ax, [long], [lat], marker = :star5, color = :yellow, markersize = 18)
 fig
 ## GOSHIP part of map
 
@@ -464,7 +467,7 @@ colsize!(fig.layout, 2, Aspect(1, 0.5))
 colgap!(fig.layout, -50)
 fig
 ##
-save(joinpath(PAPER_PATH, "fig3_profilelocation_withmarker.png"), fig)
+save(joinpath(PAPER_PATH, "fig4_profilelocation_withmarker.png"), fig, px_per_unit = 8)
 ##
 
 ############################################################################################
