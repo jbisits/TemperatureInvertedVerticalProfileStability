@@ -1,3 +1,4 @@
+include("../src/VerticalProfileStability.jl")
 using .VerticalProfileStability
 using JLD2, NCDatasets, CairoMakie, Rasters, Glob, Dates
 using ColorSchemes, GeoMakie, Statistics, StatsBase
@@ -15,20 +16,38 @@ const GOSHIP_JOINED = joinpath(@__DIR__, "../data/analysis/goship_joined.jld2")
 const ONEDMODEL_SIMULATIONS = ("initial_ΔΘ_0.5", "initial_ΔΘ_1.0", "initial_ΔΘ_2.0") .* "_tgrad"
 const PAPER_PLOTS_PATH = joinpath(@__DIR__, "../plots/paper/")
 const PAPER_PATH = joinpath(@__DIR__, "../../../Papers/PhD-paper1-CabbelingInstability")
+const CURRENT_DIR = @__DIR__
 
+# JPO publication
+# publication_theme = Theme(font="CMU Serif", fontsize = 20,
+#                           Axis=(titlesize = 22,
+#                                 xlabelsize = 20, ylabelsize = 20,
+#                                 xgridstyle = :dash, ygridstyle = :dash,
+#                                 xtickalign = 0, ytickalign = 0,
+#                                 yticksize = 7.5, xticksize = 7.5),
+#                           Legend=(framecolor = (:black, 0.5),
+#                                   backgroundcolor = (:white, 0.5),
+#                                   labelsize = 20),
+#                           Colorbar=(ticksize=16,
+#                                     tickalign=1,
+#                                     spinewidth=0.5))
+# set_theme!(publication_theme)
+
+# Match my thesis
 publication_theme = Theme(font="CMU Serif", fontsize = 20,
                           Axis=(titlesize = 22,
                                 xlabelsize = 20, ylabelsize = 20,
                                 xgridstyle = :dash, ygridstyle = :dash,
                                 xtickalign = 0, ytickalign = 0,
-                                yticksize = 7.5, xticksize = 7.5),
+                                yticksize = 6.5, xticksize = 6.5),
                           Legend=(framecolor = (:black, 0.5),
                                   backgroundcolor = (:white, 0.5),
                                   labelsize = 20),
-                          Colorbar=(ticksize=16,
+                          Colorbar=(ticksize=12,
                                     tickalign=1,
                                     spinewidth=0.5))
-set_theme!(publication_theme)
+new_theme = merge(theme_latexfonts(), publication_theme)
+set_theme!(new_theme)
 
 ############################################################################################
 ## Stability schematic, figure 1
@@ -36,7 +55,7 @@ set_theme!(publication_theme)
 
 density_grad = get(ColorSchemes.dense, range(0.25, 1, length = 3))
 haline_grad = get(ColorSchemes.haline, range(0, 1, length = 3))
-##
+#
 Θ = range(-1.95, 2, 1000)
 Θ_grid = Θ' .* ones(length(Θ))
 S = range(34.4, 34.8, 1000)
@@ -55,8 +74,8 @@ find_iso = findall(ρ .≈ lower_isopycnal)
 iso_S = S_grid[find_iso] # salinity values for the isopycnal
 iso_Θ = Θ_grid[find_iso] # Θ values for the isopycnal
 S_linear = range(34.517, S[end-10]; length = length(iso_S))
-## stability schematic plot, reverse order beceause of variables
-fig = Figure(size = (700, 700))
+# stability schematic plot, reverse order beceause of variables
+fig = Figure(size = (800, 700))
 ax2 = Axis(fig[1, 1],
         title = "(a) Stability schematic",
         xlabel = "Absolute salinity",
@@ -79,26 +98,26 @@ lines!(ax2, S_linear, Θ_linear; color = density_grad[1], linewidth = 2,
        label = L"Linearised density at $(S^{*},~\Theta^{*})$")
 
 # bands
-## cabbeling, between the curves
+# cabbeling, between the curves
 band!(ax2, iso_S, iso_Θ, iso_lin_Θ; color = (density_grad[2], 0.25))
 # linear extreme to start of curves
 fill_S = range(S_linear[1], iso_S[1]; length = 10)
 fill_Θ = fill(minimum(Θ), length(fill_S))
 fill_Θ_linear = @. Θₗ + m * (fill_S - Sₗ)
 band!(ax2, fill_S, fill_Θ, fill_Θ_linear; color = (density_grad[2], 0.25))
-## stable
+# stable
 S_stable = range(minimum(S), S_linear[1]; length = length(iso_S))
 Θ_stable_upper = fill(maximum(Θ_linear), length(iso_S))
 Θ_stable_lower = fill(minimum(Θ), length(iso_S))
 band!(ax2, S_stable, Θ_stable_lower, Θ_stable_upper; color = (density_grad[1], 0.25))
 S_stable_2 = range(S_linear[1], maximum(S); length = length(iso_S))
 band!(ax2, S_linear, Θ_linear, Θ_stable_upper; color = (density_grad[1], 0.25))
-## unstable
+# unstable
 Θ_unstable_fill = fill(Θ[1], length(iso_S))
 band!(ax2, iso_S, Θ_unstable_fill, iso_Θ; color = (density_grad[end], 0.25))
 
-## Deep water mass
-scatter!(ax2, [Sₗ], [Θₗ];  color = (:red, 0.8), label = L"\text{Deep water mass}")
+# Deep water mass
+# scatter!(ax2, [Sₗ], [Θₗ];  color = (:red, 0.8), label = L"\text{Deep water mass}")
 
 # points on linear density displaced by ± ΔΘ
 ΔΘ = 2
@@ -129,14 +148,65 @@ lines!(ax2, [cab_salinity+0.05, Sₗ], [ΔΘ_vec[1], Θₗ];
        color = haline_grad[3], linestyle = :dash)
 arrows!(ax2, [S[1]], [Θ[1]], [1], [0]; lengthscale = 0.399)
 arrows!(ax2, [S[1]], [Θ[1]], [0], [1]; lengthscale = 3.75)
+# Deep water mass
+scatter!(ax2, [Sₗ], [Θₗ];  color = (:red, 0.8), label = L"\text{Deep water mass}")
 # legend
-axislegend(ax2, position = (0.0675, 0.955))
+axislegend(ax2, position = (0.060, 0.955))
 fig
 ##
-save(joinpath(PAPER_PATH, "fig1_schematic.png"), fig)
+save(joinpath(CURRENT_DIR, "fig1_schematic.png"), fig, px_per_unit = 8)
+############################################################################################
+## Density difference threshold, figure 2
+############################################################################################
 
+S_average = 35
+S_range = [S_average - 4, S_average + 4]
+Θ_range = range(-2, 30; length = 1000)
+pᵣ = 500
+ΔΘ_vals = (0.5, 1.0, 2.0, 3.0)
+colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
+
+fig = Figure(size = (800, 700))
+ax = Axis(fig[1, 1];
+          title = "Cabbeling instability threshold",
+          titlegap = 15,
+          xlabel = "Deeper water temperature (ΘᵒC)",
+          xaxisposition = :top,
+          ylabel = L"$Δρ$ (kgm⁻³)")
+xlims!(ax, -2, 30)
+for (i, ΔΘ) ∈ enumerate(ΔΘ_vals)
+
+    # mean
+    α_mean = @. gsw_alpha(S_average, Θ_range, pᵣ)
+    β_mean = @. gsw_beta(S_average, Θ_range, pᵣ)
+    S_thres_mean = @. S_average - (α_mean / β_mean) * (ΔΘ)
+    Δρ_thres_mean = @. gsw_rho(S_thres_mean, Θ_range - ΔΘ, pᵣ) -
+                       gsw_rho(S_average, Θ_range, pᵣ)
+    lines!(ax, Θ_range, Δρ_thres_mean; color = colours[i], label = " ΔΘ = -$(ΔΘ)°C")
+
+    # error bands
+    α_lower = @. gsw_alpha(S_range[1], Θ_range, pᵣ)
+    β_lower = @. gsw_beta(S_range[1], Θ_range, pᵣ)
+    S_thres_lower = @. S_range[1] - (α_lower / β_lower) * ΔΘ
+    Δρ_thres_lower = @. gsw_rho(S_thres_lower, Θ_range - ΔΘ, pᵣ) -
+                        gsw_rho(S_range[1], Θ_range, pᵣ)
+
+    α_upper = @. gsw_alpha(S_range[2], Θ_range, pᵣ)
+    β_upper = @. gsw_beta(S_range[2], Θ_range, pᵣ)
+    S_thres_upper = @. S_range[2] - (α_upper / β_upper) * ΔΘ
+    Δρ_thres_upper = @. gsw_rho(S_thres_upper, Θ_range - ΔΘ, pᵣ) -
+                        gsw_rho(S_range[2], Θ_range, pᵣ)
+
+    band!(ax, Θ_range, Δρ_thres_lower, Δρ_thres_upper; color = (colours[i], 0.2))
+end
+Legend(fig[2, 1], ax, "Cabbeling instability threshold for", orientation = :horizontal)
+line = hlines!(ax, 0; linestyle = :dash, color = :black)
+axislegend(ax, [line], ["Static instability"], position = :rb)
+fig
+##
+save(joinpath(CURRENT_DIR, "fig2_deltarho_threshold.png"), fig, px_per_unit = 8)
 #####################################################################################
-## Possible S-T profile to demonstrate
+## Figure 3, S-T evolution
 #####################################################################################
 ## data
 ECCO_files = glob("*.nc", ECCO_TS_DATA_PATH)
@@ -292,96 +362,32 @@ for (i, d) ∈ enumerate(day_idx-1:day_idx+1)
         # Horizontal layout
         hideydecorations!(ax[i], grid = false)
     end
-    # if i != length(ax)
-    #     # Vertical layout
-    #     hidexdecorations!(ax[i], grid = false, ticks = false)
-    # end
     if i != 2
-        # Horizontal
+        # Horizontal layout
         hidexdecorations!(ax[i], grid = false, ticks = false, ticklabels = false)
-        # # Vertical
-        # hideydecorations!(ax[i], grid = false, ticks = false, ticklabels = false)
     end
     if i == 3
         # Horizontal layout
         Colorbar(fig[1, 4], limits = extrema(z[z_range]), colormap = cmap, label = "z (m)")
-        # # Vertical layout
-        # Colorbar(fig[:, 2], limits = extrema(z[z_range]), colormap = cmap, label = "z (m)")
     end
     xlims!(ax[i], 34.87, 34.974)
     ylims!(ax[i], 0, 1.2)
 end
-Label(fig[0, :], "ECCO Salinity-temperature profile at $(long)°E, $(lat)°N", font = :bold, fontsize = 22)
-# Horizontal
+Label(fig[0, :], "ECCO Salinity-temperature profile at $(long)°E, $(lat)°N", font = :bold)
+# Horizontal layout
 Legend(fig[2, :], ax[1], orientation  = :horizontal, nbanks = 2)
 linkyaxes!(ax[1], ax[2])
 linkyaxes!(ax[1], ax[3])
-# # Vertical
-# Legend(fig[4, :], ax[1], orientation  = :horizontal, nbanks = 2)
-# linkxaxes!(ax[1], ax[2])
-# linkxaxes!(ax[1], ax[3])
 fig
 resize_to_layout!(fig)
 fig
 ##
-save(joinpath(PAPER_PATH, "fig_singleTSprofile_horizontal.png"), fig)
+save(joinpath(CURRENT_DIR, "fig3_cabbeling_unstable_profile_horizontal.png"), fig, px_per_unit = 8)
 ############################################################################################
-## Density difference threshold, figure 2
-############################################################################################
-
-S_average = 35
-S_range = [S_average - 4, S_average + 4]
-Θ_range = range(-2, 30; length = 1000)
-pᵣ = 500
-ΔΘ_vals = (0.5, 1.0, 2.0, 3.0)
-colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
-
-fig = Figure(size = (500, 500))
-ax = Axis(fig[1, 1];
-          title = "Cabbeling instability threshold",
-          titlegap = 15,
-          xlabel = "Deeper water temperature (ΘᵒC)",
-          xaxisposition = :top,
-          ylabel = "Δρ (kgm⁻³)")
-xlims!(ax, -2, 30)
-for (i, ΔΘ) ∈ enumerate(ΔΘ_vals)
-
-    # mean
-    α_mean = @. gsw_alpha(S_average, Θ_range, pᵣ)
-    β_mean = @. gsw_beta(S_average, Θ_range, pᵣ)
-    S_thres_mean = @. S_average - (α_mean / β_mean) * (ΔΘ)
-    Δρ_thres_mean = @. gsw_rho(S_thres_mean, Θ_range - ΔΘ, pᵣ) -
-                       gsw_rho(S_average, Θ_range, pᵣ)
-    lines!(ax, Θ_range, Δρ_thres_mean; color = colours[i], label = " ΔΘ = -$(ΔΘ)°C")
-
-    # error bands
-    α_lower = @. gsw_alpha(S_range[1], Θ_range, pᵣ)
-    β_lower = @. gsw_beta(S_range[1], Θ_range, pᵣ)
-    S_thres_lower = @. S_range[1] - (α_lower / β_lower) * ΔΘ
-    Δρ_thres_lower = @. gsw_rho(S_thres_lower, Θ_range - ΔΘ, pᵣ) -
-                        gsw_rho(S_range[1], Θ_range, pᵣ)
-
-    α_upper = @. gsw_alpha(S_range[2], Θ_range, pᵣ)
-    β_upper = @. gsw_beta(S_range[2], Θ_range, pᵣ)
-    S_thres_upper = @. S_range[2] - (α_upper / β_upper) * ΔΘ
-    Δρ_thres_upper = @. gsw_rho(S_thres_upper, Θ_range - ΔΘ, pᵣ) -
-                        gsw_rho(S_range[2], Θ_range, pᵣ)
-
-    band!(ax, Θ_range, Δρ_thres_lower, Δρ_thres_upper; color = (colours[i], 0.2))
-end
-Legend(fig[2, 1], ax, "Cabbeling instability threshold for", orientation = :horizontal)
-line = hlines!(ax, 0; linestyle = :dash, color = :black)
-axislegend(ax, [line], ["Static instability"], position = :rb)
-fig
-##
-save(joinpath(PAPER_PATH, "fig2_Δρ_threshold.png"), fig)
-
-############################################################################################
-## Map figure for ECCO and GOSHIP, figure 3
+## Figure 4, profile locations
 ############################################################################################
 
 ## Temperature inverted profile location map
-
 output_path = ECCO_DATA_PATH
 output_files = glob("*.nc", output_path)
 ΔΘ_series = RasterSeries(output_files, Ti, child = Raster, name = :ΔΘ)
@@ -412,7 +418,6 @@ rs_proportion = Raster(ΔΘ_counts, (X(lookup(ΔΘ_series[1], :X)), Y(lookup(Δ�
 
 ## Figure
 fig = Figure(size = (500, 1000))
-# Label(fig[0, :], "Location and count of temperature inverted profiles")
 ECCO_plot = fig[1, 1] = GridLayout()
 ax = GeoAxis(ECCO_plot[1, 1];
              title = "(a) ECCOv4r4",
@@ -425,11 +430,6 @@ hidedecorations!(ax)
 hm = heatmap!(ax, lookup(rs_proportion, :X), lookup(rs_proportion, :Y), ΔΘ_counts;
               colormap = :batlow)
 Colorbar(fig[1, 2], hm, label = "Frequency")
-         #vertical = false, flipaxis = false, tellwidth = false)
-# fig
-# Box(fig[1, 1], color = (:red, 0.2), strokewidth = 0)
-# fig
-# colsize!(fig.layout, 2, Aspect(1, 0.2))
 
 # Scatter marker for unstable to cabbeling profile
 scatter!(ax, [long], [lat], marker = :star5, color = :yellow, markersize = 18)
@@ -467,112 +467,21 @@ colsize!(fig.layout, 2, Aspect(1, 0.5))
 colgap!(fig.layout, -50)
 fig
 ##
-save(joinpath(PAPER_PATH, "fig4_profilelocation_withmarker.png"), fig, px_per_unit = 8)
-##
-
+save(joinpath(CURRENT_DIR, "fig4_profilelocation_withmarker.png"), fig, px_per_unit = 8)
 ############################################################################################
-## Possible figure of ΔΘ and Δp distributions.
-############################################################################################
-# fig = Figure(size = (1200, 600))
-
-# inv_data = jldopen(EXTRACTED_DATA_INV)
-# gdj = jldopen(GOSHIP_JOINED)
-# # ΔΘ ditribution
-# ΔΘ_distribution = fig[1, :] = GridLayout()
-# ΔΘ_vals = (-0.5, -1.0, -2.0, -3.0)
-# ax_ΔΘ = Axis(ΔΘ_distribution[1, 1],
-#              title = "(a) Temperature difference distribution",
-#              xlabel = "ΔΘ (°C)",
-#              xticks = (-3:0, string.([-3, -2, -1, -0.5])),
-#              ylabel = "ΔΘ (°C)")
-# for (i, key) ∈ enumerate(keys(inv_data))
-#     move = 0.16
-#     ΔΘ_ECCO = inv_data[key]["ΔΘ_vals"]
-#     # ΔΘ = i == 1 ? -move * ones(length(ΔΘ_ECCO)) : (ΔΘ_vals[i] - move) * ones(length(ΔΘ_ECCO))
-#     # boxplot!(ax_ΔΘ, ΔΘ, ΔΘ_ECCO, width = 0.4, color = :steelblue, label = "ECCOv4r4")
-#     ΔΘ = i == 1 ? zeros(length(ΔΘ_ECCO)) : ΔΘ_vals[i] * ones(length(ΔΘ_ECCO))
-#     violin!(ax_ΔΘ, ΔΘ, ΔΘ_ECCO, color = :steelblue, label = "ECCOv4r4", side= :left,
-#             datalimits = extrema)
-#     Θᵤ, Θₗ = gdj[string(abs(ΔΘ_vals[i]))]["Θᵤ"], gdj[string(abs(ΔΘ_vals[i]))]["Θₗ"]
-#     ΔΘ_GS = -collect(skipmissing(abs.(Θᵤ .- Θₗ)))
-#     # ΔΘ = i == 1 ? move * ones(length(ΔΘ_GS)) : (ΔΘ_vals[i] + move) * ones(length(ΔΘ_GS))
-#     # boxplot!(ax_ΔΘ, ΔΘ, ΔΘ_GS, width = 0.4, color = :red, label = "GOSHIP")
-#     ΔΘ = i == 1 ? zeros(length(ΔΘ_GS)) : ΔΘ_vals[i] * ones(length(ΔΘ_GS))
-#     violin!(ax_ΔΘ, ΔΘ, ΔΘ_GS, color = (:red, 0.5), label = "GOSHIP", side = :right,
-#             datalimits = extrema)
-# end
-# hidexdecorations!(ax_ΔΘ, grid = false, ticks = false)
-
-# # ΔS distribution
-# ΔS_distribution = fig[2, :] = GridLayout()
-# ΔΘ_vals = (-0.5, -1.0, -2.0, -3.0)
-# ax_ΔS = Axis(ΔS_distribution[1, 1],
-#              title = "(b) Salinity difference distribution",
-#              xlabel = "ΔΘ (°C)",
-#              xticks = (-3:0, string.([-3, -2, -1, -0.5])),
-#              ylabel = "ΔS (gkg⁻¹)")
-# hidexdecorations!(ax_ΔΘ, grid = false, ticks = false)
-# for (i, key) ∈ enumerate(keys(inv_data))
-#     move = 0.16
-#     # Δp_ECCO = inv_data[key]["Δp_vals"]
-#     # ΔΘ = i == 1 ? -move * ones(length(Δp_ECCO)) : (ΔΘ_vals[i] - move) * ones(length(Δp_ECCO))
-#     # boxplot!(ax_Δp, ΔΘ, Δp_ECCO, width = 0.4, color = :steelblue, label = "ECCOv4r4")
-#     # ΔΘ = i == 1 ? zeros(length(Δp_ECCO)) : ΔΘ_vals[i] * ones(length(Δp_ECCO))
-#     # violin!(ax_Δp, ΔΘ, Δp_ECCO, color = :steelblue, label = "ECCOv4r4", side = :left)
-#     Sᵤ, Sₗ = gdj[string(abs(ΔΘ_vals[i]))]["Sᵤ"], gdj[string(abs(ΔΘ_vals[i]))]["Sₗ"]
-#     ΔS_GS = collect(skipmissing(abs.(Sᵤ - Sₗ)))
-#     # ΔΘ = i == 1 ? move * ones(length(Δp_GS)) : (ΔΘ_vals[i] + move) * ones(length(Δp_GS))
-#     # boxplot!(ax_Δp, ΔΘ, Δp_GS, width = 0.4, color = :red, label = "GOSHIP")
-#     ΔΘ = i == 1 ? zeros(length(ΔS_GS)) : ΔΘ_vals[i] * ones(length(ΔS_GS))
-#     boxplot!(ax_ΔS, ΔΘ, ΔS_GS, color = (:red, 0.5), label = "GOSHIP", side = :right)
-# end
-
-# # Δp ditribution
-# Δp_distribution = fig[3, :] = GridLayout()
-# ΔΘ_vals = (-0.5, -1.0, -2.0, -3.0)
-# ax_Δp = Axis(Δp_distribution[1, 1],
-#              title = "(b) Pressure difference distribution",
-#              xlabel = "ΔΘ (°C)",
-#              xticks = (-3:0, string.([-3, -2, -1, -0.5])),
-#              ylabel = "Δp (dbar)")
-# for (i, key) ∈ enumerate(keys(inv_data))
-#     move = 0.16
-#     Δp_ECCO = inv_data[key]["Δp_vals"]
-#     # ΔΘ = i == 1 ? -move * ones(length(Δp_ECCO)) : (ΔΘ_vals[i] - move) * ones(length(Δp_ECCO))
-#     # boxplot!(ax_Δp, ΔΘ, Δp_ECCO, width = 0.4, color = :steelblue, label = "ECCOv4r4")
-#     ΔΘ = i == 1 ? zeros(length(Δp_ECCO)) : ΔΘ_vals[i] * ones(length(Δp_ECCO))
-#     violin!(ax_Δp, ΔΘ, Δp_ECCO, color = :steelblue, label = "ECCOv4r4", side = :left)
-#     pᵤ, pₗ = gdj[string(abs(ΔΘ_vals[i]))]["pᵤ"], gdj[string(abs(ΔΘ_vals[i]))]["pₗ"]
-#     Δp_GS = collect(skipmissing(abs.(pᵤ - pₗ)))
-#     # ΔΘ = i == 1 ? move * ones(length(Δp_GS)) : (ΔΘ_vals[i] + move) * ones(length(Δp_GS))
-#     # boxplot!(ax_Δp, ΔΘ, Δp_GS, width = 0.4, color = :red, label = "GOSHIP")
-#     ΔΘ = i == 1 ? zeros(length(Δp_GS)) : ΔΘ_vals[i] * ones(length(Δp_GS))
-#     violin!(ax_Δp, ΔΘ, Δp_GS, color = (:red, 0.5), label = "GOSHIP", side = :right)
-#     if i == 1
-#         Legend(fig[4, :], ax_Δp, orientation = :horizontal)
-#     end
-# end
-
-# close(inv_data)
-# close(gdj)
-
-# fig
-# ##
-# save(joinpath(PAPER_PLOTS_PATH, "fig_Θandp_distributions.png"), fig)
-############################################################################################
-## Static density difference threshold for model, figure 4
+## Figure 5, model initial static density difference
 ############################################################################################
 expt_ls = (:dot, :dash, :dashdot)
 colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
 density_grad = get(ColorSchemes.dense, range(0.25, 1, length = 3))
 ΔΘ_thres_vals = (0.5, 1.0, 2.0)
-fig = Figure(size = (500, 500))
+fig = Figure(size = (800, 700))
 xtickposition = -2:0
 ax = Axis(fig[1, 1];
           title = "Initial static density difference at model interface",
           xlabel = "Initial ΔΘ (°C) at model interface",
           xticks = (xtickposition, string.([-2, -1, -0.5])),
-          ylabel = "Δσ₀ (kgm⁻³)")
+          ylabel = L"$Δσ_{0}$ (kgm⁻³)")
 hlines!(ax, 0; color = :black, linestyle = :dash)
 for (j, sim) ∈ enumerate(ONEDMODEL_SIMULATIONS)
     sim_output = joinpath(SIM_DATADIR, sim)
@@ -607,11 +516,11 @@ labels = ["Stable to cabbeling", "Unstable to cabbeling"]
 Legend(fig[2, 1], markers, labels, orientation = :horizontal)
 fig
 ##
-save(joinpath(PAPER_PATH, "fig4_modelΔρthreshold.png"), fig)
+save(joinpath(CURRENT_DIR, "fig5_model_deltarho_threshold.png"), fig, px_per_unit = 8)
 ############################################################################################
-## Unstable density difference time series, figure 5
+## Figure 5, model density time series
 ############################################################################################
-σ₀_fig = Figure(resolution = (600, 1000))
+σ₀_fig = Figure(resolution = (700, 1000))
 z = -497.5:5:-2.5
 z_range = 61:100
 ax = [Axis(σ₀_fig[j, 1],
@@ -653,17 +562,17 @@ for (j, sim) ∈ enumerate(ONEDMODEL_SIMULATIONS)
     poly!(ax[j], Point2f[rapid_diff_region...], color = p)
     hm = heatmap!(ax[j], t, z[z_range], σₒ_ts[:, :, 2]'; colormap = (:dense, 0.9))
     if j == length(ONEDMODEL_SIMULATIONS)
-        Colorbar(σ₀_fig[4, 1], hm, label = "σ₀ anomaly (kgm⁻³)", vertical = false,
-                 flipaxis = false)
+        Colorbar(σ₀_fig[4, 1], hm, label = L"$σ_{0}$ anomaly (kgm⁻³)", vertical = false,
+                 flipaxis = false,
+                 ticklabelrotation = π/4)
     end
 
 end
 σ₀_fig
 ##
-save(joinpath(PAPER_PATH, "fig5_modelρts.png"), σ₀_fig)
-
+save(joinpath(CURRENT_DIR, "fig6_model_rho_ts.png"), σ₀_fig, px_per_unit = 8)
 ############################################################################################
-## ECCO pdf figure 6
+## Figure 6, ECCO pdf
 ############################################################################################
 inv_data = jldopen(EXTRACTED_DATA_INV)
 Δρ_limits = (-0.2, 0.01)
@@ -683,7 +592,7 @@ ax_splot = Axis(splot[1, 1];
                 xaxisposition = :top,
                 title = "(a) Maximum static density difference, ECCOv4r4",
                 titlegap = 15,
-                ylabel = "Δρ (kgm⁻³)",
+                ylabel = L"$Δρ$ (kgm⁻³)",
                 limits = (xlimits, Δρ_limits))
 for (i, key) ∈ enumerate(keys(inv_data))
 
@@ -706,7 +615,7 @@ Legend(splot[2, 1], ax_splot, "Cabbeling instability threshold for", orientation
 # pdf
 pdf_plots = full_fig[1:4, 3] = GridLayout()
 ax_pdf = [Axis(pdf_plots[i, 1];
-        xlabel = "Δρ (kgm⁻³)",
+        xlabel = L"$Δρ$ (kgm⁻³)",
         xticklabelsize = 15, yticklabelsize = 15,
         yticksize = 7, xticksize = 7,
         titlesize = 20) for i ∈ 1:4]
@@ -727,10 +636,9 @@ for (i, key) ∈ enumerate(keys(inv_data))
     area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
     hist_fit = fit(Histogram, Δρˢ, area_weights_, hist_edges)
     hist_fit = normalize(hist_fit; mode = :pdf)
-    #hist!(ax_pdf[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
     plot!(ax_pdf[i], hist_fit; color = (colours[i], 0.5))
     vlines!(ax_pdf[i], Δρ_thres_mean; color = colours[i], linewidth = 2,
-            label = "Δρ threshold for ΔΘ")
+            label = L"$Δρ$ threshold for $ΔΘ$")
     vlines!(ax_pdf[i], 0; color = :black, linestyle = :dash)
     ax_pdf[i].title = letter_labels[i] * " PDF, ΔΘ = -$(ΔΘ_range[1])°C"
 
@@ -752,10 +660,10 @@ end
 close(inv_data)
 # full_fig
 #
-save(joinpath(PAPER_PATH, "fig6_ECCOpdfs.png"), full_fig)
+save(joinpath(CURRENT_DIR, "fig7_ECCOpdfs.png"), full_fig, px_per_unit = 8)
 
 ############################################################################################
-## GOSHIP figure figure 7
+## Figure 8, GOSHIP pdfs
 ############################################################################################
 gdj = jldopen(GOSHIP_JOINED)
 Θₗ_lims = (-1.88, 10)
@@ -772,7 +680,7 @@ ax_splot = Axis(splot[1, 1];
                 xaxisposition = :top,
                 title = "(a) Maximum static density difference, GOSHIP",
                 titlegap = 15,
-                ylabel = "Δρ (kgm⁻³)",
+                ylabel = L"$Δρ$ (kgm⁻³)",
                 limits = (Θₗ_lims, Δρ_lims))
 data_count = Vector{Int64}(undef, length(ΔΘ_thres))
 for (i, key) ∈ enumerate(keys(gdj))
@@ -808,7 +716,7 @@ ax_pdf = [Axis(pdf_plots[i, 1],
         titlesize = 20,
         xticklabelsize = 15, yticklabelsize = 15,
         yticksize = 7, xticksize = 7,
-        xlabel = "Δρ (kgm⁻³)")
+        xlabel = L"$Δρ$ (kgm⁻³)")
       for i ∈ 1:4]
 less_thres = Vector{Float64}(undef, 4)
 over_thres = Vector{Float64}(undef, 4)
@@ -835,7 +743,7 @@ for (i, key) ∈ enumerate(keys(gdj))
     hist!(ax_pdf[i], Δρˢ; bins = hist_edges, normalization = :pdf,
           color = (ΔΘ_colours[i], 0.5))
     vlines!(ax_pdf[i], Δρ_thres_mean; color = ΔΘ_colours[i], linewidth = 2,
-            label = "Δρ threshold for ΔΘ")
+            label = L"$Δρ$ threshold for ΔΘ")
     vlines!(ax_pdf[i], 0; color = :black, linestyle = :dash,
             label = "Static stability threshold")
     ax_pdf[i].title = letter_labels[i] * " PDF, ΔΘ = -$(ΔΘ_thres[i])°C"
@@ -860,84 +768,23 @@ for i ∈ 1:4
 end
 less_thres
 over_thres
-#rowsize!(full_fig.layout, 1, Auto(1.15))
 full_fig
 data_count == data_count2
 data_count
-save(joinpath(PAPER_PATH, "fig7_GOSHIPpdfs.png"), full_fig)
+save(joinpath(CURRENT_DIR, "fig8_GOSHIPpdfs.png"), full_fig, px_per_unit = 8)
 close(gdj)
 ##
 
 ############################################################################################
-## Probability against ΔΘ, figure 8
+## Figure 9, Probability againset ΔΘ
 ############################################################################################
-data_files = (EXTRACTED_DATA_INV, GOSHIP_JOINED)
-ΔΘ_thres = (0.5, 1, 2, 3)
-ΔΘ_colours = get(ColorSchemes.thermal, range(0, 0.8; length = 4))
-
-Δρ_val = -0.04
-ECCO_cdf_Δρ_val = Vector{Float64}(undef, 4)
-ECCO_num_obs = Vector{Int64}(undef, 4)
-area = begin
-    grid_path = joinpath(@__DIR__, "../data/observations/ECCO_grid/GRID_GEOMETRY_ECCO_V4r4_latlon_0p50deg.nc")
-    rs_grid = Raster(grid_path, name = :area)
-    rs_grid[X(1)]
-end
-GOSHIP_cdf_Δρ_val = Vector{Float64}(undef, 4)
-GOSHIP_num_obs = Vector{Int64}(undef, 4)
-## Calculate ecdf
-for (i, data) ∈ enumerate(data_files)
-
-    d = jldopen(data)
-    for (j, key) ∈ enumerate(keys(d))
-
-        Δρˢ =   if i == 1
-                    sort(collect(skipmissing(d[key]["Δρˢ"])))
-                else
-                    Θᵤ = collect(skipmissing(d[key]["Θᵤ"]))
-                    Θₗ = collect(skipmissing(d[key]["Θₗ"]))
-                    find_inv = Θᵤ .≤ Θₗ
-                    sort(collect(skipmissing(d[key]["Δρˢ"]))[find_inv])
-                end
-        i==1 ? ECCO_num_obs[j] = length(Δρˢ) :
-               GOSHIP_num_obs[j] = length(Δρˢ)
-        fit_ecdf = i == 1 ? begin
-                                lats = d[key]["lats"]
-                                area_weights_ = weights(Float32.([area[Y(At(lat))]
-                                                                    for lat ∈ lats]))
-                                ecdf(Δρˢ; weights = area_weights_)
-                            end : ecdf(Δρˢ)
-        i==1 ? ECCO_cdf_Δρ_val[j] = fit_ecdf(Δρ_val) :
-               GOSHIP_cdf_Δρ_val[j] = fit_ecdf(Δρ_val)
-
-    end
-    close(d)
-
-end
-fig = Figure(size = (500, 500))
-ΔΘ_vals = [-0.5, -1.0, -2.0, -3.0]
-ax = Axis(fig[1, 1];
-           title = "Temperature difference effect on stratification",
-           xlabel = L"ΔΘ~(°C~)",
-           ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ'~|~ΔΘ\right)")
-scatterlines!(ax, ΔΘ_vals, 1 .- ECCO_cdf_Δρ_val; label = "ECCOv4r4")
-scatterlines!(ax, ΔΘ_vals, 1 .- GOSHIP_cdf_Δρ_val; label = "GOSHIP")
-axislegend(ax, position = :lb)
-fig
-##
-save(joinpath(PAPER_PATH, "fig8_probΔΘ.png"), fig)
-
-############################################################################################
-## Figure 8 alternative
-############################################################################################
-
 Δρ_limits = (-0.4, 0.01)
 Δρ_val = -0.04
 bin_width = 0.0001
 colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
 fig = Figure(size = (800, 1000))
 
-##
+#
 inv_data = jldopen(EXTRACTED_DATA_INV)
 area = begin
         grid_path = joinpath(@__DIR__, "../data/observations/ECCO_grid/GRID_GEOMETRY_ECCO_V4r4_latlon_0p50deg.nc")
@@ -946,7 +793,7 @@ area = begin
        end
 
 ax_pdf = Axis(fig[1, 1];
-        xlabel = "Δρ (kgm⁻³)",
+        xlabel = L"$Δρ$ (kgm⁻³)",
         title = "(a) ECCOv4r4 pdfs")
 
 for (i, key) ∈ enumerate(keys(inv_data))
@@ -962,21 +809,19 @@ for (i, key) ∈ enumerate(keys(inv_data))
     area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
     hist_fit = fit(Histogram, Δρˢ, area_weights_, hist_edges)
     hist_fit = normalize(hist_fit; mode = :pdf)
-    #hist!(ax_pdf[i], Δρˢ; bins = hist_edges, normalization = :pdf, color = (colours[i], 0.5))
     plot!(ax_pdf, hist_fit; color = (colours[i], 0.8), label = " ΔΘ = -$(ΔΘ_range[1])°C")
 
 end
-vlines!(ax_pdf, Δρ_val, color = :red, linestyle = :dash, label = "Reference Δρ'")
+vlines!(ax_pdf, Δρ_val, color = :red, linestyle = :dash, label = L"Reference $Δρ'$")
 xlims!(ax_pdf, Δρ_limits)
 ylims!(ax_pdf; low = 0, high = nothing)
-#axislegend(ax_pdf, position = :lt, nbanks = 2)
 close(inv_data)
 fig
-##
+#
 ΔΘ_range = (0.5, 1.0, 2.0, 3.0)
 bin_width = 0.001
 ax_goship = Axis(fig[1, 2];
-                xlabel = "Δρ (kgm⁻³)",
+                xlabel = L"$Δρ$ (kgm⁻³)",
                 title = "(b) GOSHIP pdfs")
 
 gdj = jldopen(GOSHIP_JOINED)
@@ -994,15 +839,13 @@ for (i, key) ∈ enumerate(keys(gdj))
    plot!(ax_goship, hist_fit; color = (colours[i], 0.8), label = " ΔΘ = -$(ΔΘ_range[i])°C")
 
 end
-vlines!(ax_goship, Δρ_val, color = :red, linestyle = :dash, label = "Δρᵣ")
+vlines!(ax_goship, Δρ_val, color = :red, linestyle = :dash, label = L"Δρ_{r}")
 xlims!(ax_goship, Δρ_limits)
 ylims!(ax_goship; low = 0, high = nothing)
-# axislegend(ax_goship, position = :lt, nbanks = 2)
 close(gdj)
 fig
-##
 Legend(fig[2, :],  ax_goship, orientation = :horizontal)
-##
+#
 ΔΘ_vals = [0.0, -1.0, -2.0, -3.0]
 ax_ecdf = Axis(fig[3, :];
            title = "(c) Temperature inversion effect on stratification",
@@ -1013,111 +856,174 @@ scatterlines!(ax_ecdf, ΔΘ_vals, 1 .- ECCO_cdf_Δρ_val; label = "ECCOv4r4")
 scatterlines!(ax_ecdf, ΔΘ_vals, 1 .- GOSHIP_cdf_Δρ_val; label = "GOSHIP")
 axislegend(ax_ecdf, position = :lt)
 fig
-save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt2.png"), fig)
+save(joinpath(CURRENT_DIR, "fig9_prob_deltatheta.png"), fig, px_per_unit = 8)
+
+
+# ##
+# data_files = (EXTRACTED_DATA_INV, GOSHIP_JOINED)
+# ΔΘ_thres = (0.5, 1, 2, 3)
+# ΔΘ_colours = get(ColorSchemes.thermal, range(0, 0.8; length = 4))
+
+# Δρ_val = -0.04
+# ECCO_cdf_Δρ_val = Vector{Float64}(undef, 4)
+# ECCO_num_obs = Vector{Int64}(undef, 4)
+# area = begin
+#     grid_path = joinpath(@__DIR__, "../data/observations/ECCO_grid/GRID_GEOMETRY_ECCO_V4r4_latlon_0p50deg.nc")
+#     rs_grid = Raster(grid_path, name = :area)
+#     rs_grid[X(1)]
+# end
+# GOSHIP_cdf_Δρ_val = Vector{Float64}(undef, 4)
+# GOSHIP_num_obs = Vector{Int64}(undef, 4)
+# ## Calculate ecdf
+# for (i, data) ∈ enumerate(data_files)
+
+#     d = jldopen(data)
+#     for (j, key) ∈ enumerate(keys(d))
+
+#         Δρˢ =   if i == 1
+#                     sort(collect(skipmissing(d[key]["Δρˢ"])))
+#                 else
+#                     Θᵤ = collect(skipmissing(d[key]["Θᵤ"]))
+#                     Θₗ = collect(skipmissing(d[key]["Θₗ"]))
+#                     find_inv = Θᵤ .≤ Θₗ
+#                     sort(collect(skipmissing(d[key]["Δρˢ"]))[find_inv])
+#                 end
+#         i==1 ? ECCO_num_obs[j] = length(Δρˢ) :
+#                GOSHIP_num_obs[j] = length(Δρˢ)
+#         fit_ecdf = i == 1 ? begin
+#                                 lats = d[key]["lats"]
+#                                 area_weights_ = weights(Float32.([area[Y(At(lat))]
+#                                                                     for lat ∈ lats]))
+#                                 ecdf(Δρˢ; weights = area_weights_)
+#                             end : ecdf(Δρˢ)
+#         i==1 ? ECCO_cdf_Δρ_val[j] = fit_ecdf(Δρ_val) :
+#                GOSHIP_cdf_Δρ_val[j] = fit_ecdf(Δρ_val)
+
+#     end
+#     close(d)
+
+# end
+# fig = Figure(size = (500, 500))
+# ΔΘ_vals = [-0.5, -1.0, -2.0, -3.0]
+# ax = Axis(fig[1, 1];
+#            title = "Temperature difference effect on stratification",
+#            xlabel = L"ΔΘ~(°C~)",
+#            ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ'~|~ΔΘ\right)")
+# scatterlines!(ax, ΔΘ_vals, 1 .- ECCO_cdf_Δρ_val; label = "ECCOv4r4")
+# scatterlines!(ax, ΔΘ_vals, 1 .- GOSHIP_cdf_Δρ_val; label = "GOSHIP")
+# axislegend(ax, position = :lb)
+# fig
+# ##
+# save(joinpath(PAPER_PATH, "fig8_probΔΘ.png"), fig)
+
+############################################################################################
+## Figure 8 alternative
+############################################################################################
+
 
 ############################################################################################
 ## Sorted into 1° temperature ranges
 ############################################################################################
 
-colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
-Δρᵣ = -0.04
-Δρ_limits = (-0.4, 0.01)
-ΔΘ_range = (0.5, 1.0, 2.0, 3.0)
-ΔΘ_keys = ("ΔΘ_0.5_1.5", "ΔΘ_1.5_2.5", "ΔΘ_2.5_3.5", "ΔΘ_3.5_4.5")
-ΔΘ_ranges = "ΔΘ ∈ " .* ["(-1.5°C, -0.5°C)", "(-2.5°C, -1.5°C)", "(-3.5°C, -2.5°C)", "(-4.5°C, -3.5°C)"]
+# colours = reverse(get(ColorSchemes.thermal, range(0, 0.8; length = 4)))
+# Δρᵣ = -0.04
+# Δρ_limits = (-0.4, 0.01)
+# ΔΘ_range = (0.5, 1.0, 2.0, 3.0)
+# ΔΘ_keys = ("ΔΘ_0.5_1.5", "ΔΘ_1.5_2.5", "ΔΘ_2.5_3.5", "ΔΘ_3.5_4.5")
+# ΔΘ_ranges = "ΔΘ ∈ " .* ["(-1.5°C, -0.5°C)", "(-2.5°C, -1.5°C)", "(-3.5°C, -2.5°C)", "(-4.5°C, -3.5°C)"]
 
-fig = Figure(size = (800, 1000))
-## ecco grouped by temperature range
-ecco_ΔΘ_grouped = group_ecco_ΔΘ(EXTRACTED_DATA_INV)
-ax_ecco = Axis(fig[1, 1];
-        xlabel = "Δρ (kgm⁻³)",
-        title = "(a) ECCOv4r4 pdfs")
-xlims!(ax_ecco, Δρ_limits)
-ecco_probs = Vector{Float64}(undef, 4)
-for (i, k) ∈ enumerate(ΔΘ_keys)
+# fig = Figure(size = (800, 1000))
+# ## ecco grouped by temperature range
+# ecco_ΔΘ_grouped = group_ecco_ΔΘ(EXTRACTED_DATA_INV)
+# ax_ecco = Axis(fig[1, 1];
+#         xlabel = "Δρ (kgm⁻³)",
+#         title = "(a) ECCOv4r4 pdfs")
+# xlims!(ax_ecco, Δρ_limits)
+# ecco_probs = Vector{Float64}(undef, 4)
+# for (i, k) ∈ enumerate(ΔΘ_keys)
 
-    Δρˢ = ecco_ΔΘ_grouped[2][k]
-    bin_width = 0.0001
-    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
-    # area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
-    hist_fit = fit(Histogram, Δρˢ, hist_edges)
-    hist_fit = normalize(hist_fit; mode = :pdf)
-    plot!(ax_ecco, hist_fit; color = (colours[i], 0.8))
+#     Δρˢ = ecco_ΔΘ_grouped[2][k]
+#     bin_width = 0.0001
+#     hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+#     # area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
+#     hist_fit = fit(Histogram, Δρˢ, hist_edges)
+#     hist_fit = normalize(hist_fit; mode = :pdf)
+#     plot!(ax_ecco, hist_fit; color = (colours[i], 0.8))
 
-    fit_ecdf = ecdf(Δρˢ)
-    ecco_probs[i] = fit_ecdf(Δρᵣ)
-end
-vlines!(ax_ecco, -0.04, linestyle = :dash, color = :red, label = "Δρᵣ")
-axislegend(ax_ecco, position = :lt)
-fig
-ecco_probs
-## goship grouped by temperature range
-goship_ΔΘ_grouped = group_goship_ΔΘ(GOSHIP_JOINED)
-ax_goship = Axis(fig[1, 2];
-                xlabel = "Δρ (kgm⁻³)",
-                title = "(b) GOSHIP pdfs")
-xlims!(ax_goship, Δρ_limits)
-goship_probs = Vector{Float64}(undef, 4)
-for (i, k) ∈ enumerate(ΔΘ_keys)
+#     fit_ecdf = ecdf(Δρˢ)
+#     ecco_probs[i] = fit_ecdf(Δρᵣ)
+# end
+# vlines!(ax_ecco, -0.04, linestyle = :dash, color = :red, label = "Δρᵣ")
+# axislegend(ax_ecco, position = :lt)
+# fig
+# ecco_probs
+# ## goship grouped by temperature range
+# goship_ΔΘ_grouped = group_goship_ΔΘ(GOSHIP_JOINED)
+# ax_goship = Axis(fig[1, 2];
+#                 xlabel = "Δρ (kgm⁻³)",
+#                 title = "(b) GOSHIP pdfs")
+# xlims!(ax_goship, Δρ_limits)
+# goship_probs = Vector{Float64}(undef, 4)
+# for (i, k) ∈ enumerate(ΔΘ_keys)
 
-    Δρˢ = goship_ΔΘ_grouped[2][k]
-    bin_width = #=i < 3 ? 0.005 :=# 0.005
-    hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
-    # area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
-    hist_fit = fit(Histogram, Δρˢ, hist_edges)
-    hist_fit = normalize(hist_fit; mode = :pdf)
-    plot!(ax_goship, hist_fit; color = (colours[i], 0.8), label = ΔΘ_ranges[i])
+#     Δρˢ = goship_ΔΘ_grouped[2][k]
+#     bin_width = #=i < 3 ? 0.005 :=# 0.005
+#     hist_edges = minimum(Δρˢ):bin_width:maximum(Δρˢ)
+#     # area_weights_ = weights(Float32.([area[Y(At(lat))] for lat ∈ lats]))
+#     hist_fit = fit(Histogram, Δρˢ, hist_edges)
+#     hist_fit = normalize(hist_fit; mode = :pdf)
+#     plot!(ax_goship, hist_fit; color = (colours[i], 0.8), label = ΔΘ_ranges[i])
 
-    fit_ecdf = ecdf(Δρˢ)
-    goship_probs[i] = fit_ecdf(Δρᵣ)
-end
-vlines!(ax_goship, -0.04, linestyle = :dash, color = :red)
-fig
-goship_probs
-##
-Legend(fig[2, :], ax_goship, orientation = :horizontal, nbanks = 2)
-fig
-## ecdf
-ΔΘ_vals = [0, -1.0, -2.0, -3.0]
-ax_ecdf = Axis(fig[3, :];
-           title = "(c) Temperature inversion effect on stratification",
-           ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ_{\mathrm{r}}~|~ΔΘ\right)")
-hidexdecorations!(ax_ecdf)
-# scatterlines!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, label = "ECCOv4r4",
-#               linestyle = :dash, markersize = 10)
-# scatterlines!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, label = "GOSHIP",
-#               linestyle = :dot, markersize = 10)
-lines!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, linestyle = :dot, label = "ECCOv4r4")
-scatter!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, markersize = 12)
-lines!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, linestyle = :dashdot, label = "GOSHIP")
-scatter!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, markersize = 12)
-axislegend(ax_ecdf, position = :cb)
-fig
-save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt3.png"), fig)
+#     fit_ecdf = ecdf(Δρˢ)
+#     goship_probs[i] = fit_ecdf(Δρᵣ)
+# end
+# vlines!(ax_goship, -0.04, linestyle = :dash, color = :red)
+# fig
+# goship_probs
+# ##
+# Legend(fig[2, :], ax_goship, orientation = :horizontal, nbanks = 2)
+# fig
+# ## ecdf
+# ΔΘ_vals = [0, -1.0, -2.0, -3.0]
+# ax_ecdf = Axis(fig[3, :];
+#            title = "(c) Temperature inversion effect on stratification",
+#            ylabel = L"ℙ\left(Δρ_{\mathrm{static}}^{\mathrm{max}}~<~Δρ_{\mathrm{r}}~|~ΔΘ\right)")
+# hidexdecorations!(ax_ecdf)
+# # scatterlines!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, label = "ECCOv4r4",
+# #               linestyle = :dash, markersize = 10)
+# # scatterlines!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, label = "GOSHIP",
+# #               linestyle = :dot, markersize = 10)
+# lines!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, linestyle = :dot, label = "ECCOv4r4")
+# scatter!(ax_ecdf, ΔΘ_vals, ecco_probs; color = colours, markersize = 12)
+# lines!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, linestyle = :dashdot, label = "GOSHIP")
+# scatter!(ax_ecdf, ΔΘ_vals, goship_probs; color = colours, markersize = 12)
+# axislegend(ax_ecdf, position = :cb)
+# fig
+# save(joinpath(PAPER_PATH, "fig8_probΔΘ_alt3.png"), fig)
 ############################################################################################
 ## Δρ vs ΔΘ
 ############################################################################################
-Δρ = -0.06:0.001:0
-S = 34.9
-p = 500
-Θ_star = 1.0
-α_star = gsw_alpha(S, Θ_star, p)
-β_star = gsw_beta(S, Θ_star, p)
-m = α_star / β_star
+# Δρ = -0.06:0.001:0
+# S = 34.9
+# p = 500
+# Θ_star = 1.0
+# α_star = gsw_alpha(S, Θ_star, p)
+# β_star = gsw_beta(S, Θ_star, p)
+# m = α_star / β_star
 
-cabbeling =  @. Δρ + gsw_rho(S, Θ_star, p)
-static = gsw_rho(S, Θ_star, p)
+# cabbeling =  @. Δρ + gsw_rho(S, Θ_star, p)
+# static = gsw_rho(S, Θ_star, p)
 
-ΔΘ_vals = -3:0.005:1
-compute_cabbeling = @. gsw_rho(S + m * ΔΘ_vals, Θ_star + ΔΘ_vals, p)
+# ΔΘ_vals = -3:0.005:1
+# compute_cabbeling = @. gsw_rho(S + m * ΔΘ_vals, Θ_star + ΔΘ_vals, p)
 
-ΔΘ_cabbeling = [ΔΘ_vals[findfirst(cabbeling[i] .≤ compute_cabbeling)] for i ∈ eachindex(Δρ)]
-# ΔΘ_static = [ΔΘ_vals[findfirst(static .≤ compute_cabbeling)] for i ∈ eachindex(Δρ)]
+# ΔΘ_cabbeling = [ΔΘ_vals[findfirst(cabbeling[i] .≤ compute_cabbeling)] for i ∈ eachindex(Δρ)]
+# # ΔΘ_static = [ΔΘ_vals[findfirst(static .≤ compute_cabbeling)] for i ∈ eachindex(Δρ)]
 
-fig = Figure(size = (500, 500))
-ax = Axis(fig[1, 1], title = "Estimated temperature inversion",
-          xlabel = "Δρ (kgm⁻³)", ylabel = "ΔΘ (°C)")
-lines!(ax, Δρ, ΔΘ_cabbeling)
-# lines!(ax, Δρ, ΔΘ_static)
-fig
-#save(joinpath(PAPER_PATH, "fig9_Θinversion.png"), fig)
+# fig = Figure(size = (500, 500))
+# ax = Axis(fig[1, 1], title = "Estimated temperature inversion",
+#           xlabel = "Δρ (kgm⁻³)", ylabel = "ΔΘ (°C)")
+# lines!(ax, Δρ, ΔΘ_cabbeling)
+# # lines!(ax, Δρ, ΔΘ_static)
+# fig
+# #save(joinpath(PAPER_PATH, "fig9_Θinversion.png"), fig)
