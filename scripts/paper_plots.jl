@@ -31,7 +31,7 @@ publication_theme = Theme(font="CMU Serif", fontsize = 20,
                                     spinewidth=0.5))
 set_theme!(publication_theme)
 
-# # Match others for thesis
+# # # Match others for thesis
 # publication_theme = Theme(font="CMU Serif", fontsize = 20,
 #                           Axis=(titlesize = 22,
 #                                 xlabelsize = 20, ylabelsize = 20,
@@ -516,9 +516,9 @@ fig
 ##
 save(joinpath(CURRENT_DIR, "fig5_model_deltarho_threshold.png"), fig, px_per_unit = 8)
 ############################################################################################
-## Figure 5, model density time series
+## Figure 6, model density time series
 ############################################################################################
-σ₀_fig = Figure(resolution = (700, 1000))
+σ₀_fig = Figure(resolution = (1000, 1000))
 z = -497.5:5:-2.5
 z_range = 61:100
 ax = [Axis(σ₀_fig[j, 1],
